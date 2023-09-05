@@ -27,16 +27,16 @@ def add_balance(token: str = Depends(oauth2_scheme), amount: float = Form(...)):
     logger.debug("Returning From the Add Balance Router")
     return response
 
-@router.post("/buy-investment-quanity")
+@router.post("/buy-investment-share")
 def buy_investment_quanity(token: str = Depends(oauth2_scheme), quantity: int = Form(...), property_id: str = Form(...)):
-    logger.debug("Inside Buy Investment Quanity Router")
-    response = customer_investment_service.buy_investment_quanity(token=token, quantity=quantity, property_id=property_id)
-    logger.debug("Returning From the Buy Investment Quanity Router")
+    logger.debug("Inside Buy Investment Share Router")
+    response = customer_investment_service.buy_investment_share(token=token, quantity=quantity, property_id=property_id)
+    logger.debug("Returning From the Buy Investment Share Router")
     return response
 
-@router.post("/sell-investment-quanity")
+@router.post("/sell-investment-share")
 def sell_investment_quanity(token: str = Depends(oauth2_scheme), quantity: int = Form(...), property_id: str = Form(...)):
-    logger.debug("Inside Sell Investment Quanity Router")
-    response = customer_investment_service.sell_investment_quantity(token=token, quantity=quantity, property_id=property_id)
-    logger.debug("Returning From the Sell Investment Quanity Router")
+    logger.debug("Inside Sell Investment Share Router")
+    response = customer_investment_service.sell_investment_share(token=token, quantity=quantity, property_id=property_id)
+    logger.debug("Returning From the Sell Investment Share Router")
     return response
