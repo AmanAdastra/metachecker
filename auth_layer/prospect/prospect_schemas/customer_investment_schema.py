@@ -18,6 +18,8 @@ class CustomerTransactionSchemaInDB(BaseModel):
     property_id: str
     transaction_type: str
     transaction_amount: float
+    transaction_quantity: float
+    transaction_avg_price: float
     transaction_id: str
     transaction_status: str
     transaction_date: float = time.time()

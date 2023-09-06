@@ -324,6 +324,8 @@ def buy_investment_share(token, quantity, property_id):
             user_id=user_id,
             property_id=property_id,
             transaction_type="BUY",
+            transaction_quantity=quantity,
+            transaction_avg_price=current_price,
             transaction_amount=quantity * current_price,
             transaction_id=str(uuid4()),
             transaction_status="SUCCESS",
@@ -424,6 +426,8 @@ def sell_investment_share(token, quantity, property_id):
             user_id=user_id,
             property_id=property_id,
             transaction_type="SELL",
+            transaction_quantity=quantity,
+            transaction_avg_price=current_price,
             transaction_amount=quantity * current_price,
             transaction_id=str(uuid4()),
             transaction_status="SUCCESS",
@@ -452,4 +456,110 @@ def sell_investment_share(token, quantity, property_id):
         )
 
     logger.debug("Returning From the Sell Investment Share Service")
+    return response
+
+
+def get_transaction_details_by_id(token, transaction_id):
+    logger.debug("Inside Get Transaction Details By Id Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        customer_transaction_details_collection = db[
+            constants.CUSTOMER_TRANSACTION_SCHEMA
+        ]
+        customer_transaction_details = customer_transaction_details_collection.find_one(
+            {"transaction_id": (transaction_id)}
+        )
+        if customer_transaction_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Transaction Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        if customer_transaction_details.get("user_id") != user_id:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Transaction Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        del customer_transaction_details["_id"]
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"transaction_details": customer_transaction_details},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Transaction Details By Id Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Transaction Details By Id Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Transaction Details By Id Service")
+    return response
+
+
+def get_customers_transactions(token):
+    logger.debug("Inside Get Customers Transactions Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        customer_transaction_details_collection = db[
+            constants.CUSTOMER_TRANSACTION_SCHEMA
+        ]
+        customer_transaction_details = customer_transaction_details_collection.find(
+            {"user_id": (user_id)}, {"_id": 1, "property_id": 1, "transaction_type": 1, "transaction_amount": 1, "transaction_quantity": 1, "transaction_avg_price": 1, "transaction_id": 1, "transaction_status": 1, "transaction_date": 1}
+        )
+        if customer_transaction_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Transaction Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        customer_transaction_details = list(customer_transaction_details)
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        property_ids = [
+            ObjectId(transaction.get("property_id"))
+            for transaction in customer_transaction_details
+        ]
+        property_details = property_details_collection.find(
+            {constants.INDEX_ID: {"$in": property_ids}},
+            {"project_title": 1, "_id": 1},
+        )
+
+        property_dict = {}
+        for property_detail in property_details:
+            property_dict[
+                str(property_detail.get(constants.INDEX_ID))
+            ] = property_detail.get("project_title")
+
+        transactions = []
+        for transaction in customer_transaction_details:
+            transaction["_id"] = str(transaction.get("_id"))
+            transaction["property_title"] = property_dict.get(
+                transaction.get("property_id")
+            )
+            transactions.append(transaction)
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"transactions": transactions},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Customers Transactions Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Customers Transactions Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Customers Transactions Service")
     return response

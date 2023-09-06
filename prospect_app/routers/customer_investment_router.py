@@ -40,3 +40,18 @@ def sell_investment_quanity(token: str = Depends(oauth2_scheme), quantity: int =
     response = customer_investment_service.sell_investment_share(token=token, quantity=quantity, property_id=property_id)
     logger.debug("Returning From the Sell Investment Share Router")
     return response
+
+
+@router.get("/get-transaction-details-by-id")
+def get_transaction_details_by_id(transaction_id: str,token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Transaction Details By Id Router")
+    response = customer_investment_service.get_transaction_details_by_id(token=token, transaction_id=transaction_id)
+    logger.debug("Returning From the Get Transaction Details By Id Router")
+    return response
+
+@router.get("/get-customers-transactions")
+def get_customers_transactions(token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Customers Transactions Router")
+    response = customer_investment_service.get_customers_transactions(token=token)
+    logger.debug("Returning From the Get Customers Transactions Router")
+    return response
