@@ -59,12 +59,25 @@ def get_user_wallet(token):
             candle_dict[str(candle.get(constants.PROPERTY_ID_FIELD))] = candle.get(
                 "candle_data"
             )
-
+        portfolio_balance = 0
         for property_detail in property_details:
             wallet_quantity = user_wallet.get(
                 str(property_detail.get(constants.INDEX_ID))
             ).get("quantity")
             if wallet_quantity > 0:
+                portfolio_balance += wallet_quantity * property_detail.get("price")
+                candle_data = candle_dict.get(
+                    str(property_detail.get(constants.INDEX_ID))
+                )
+                change_percent_24_hr = (
+                    0
+                    if len(candle_data) == 1
+                    else (
+                        (candle_data[-1].get("price") - candle_data[-2].get("price"))
+                        * 100
+                        / candle_data[-2].get("price")
+                    )
+                )
                 portfolio_details.append(
                     {
                         str(property_detail.get(constants.INDEX_ID)): {
@@ -77,9 +90,8 @@ def get_user_wallet(token):
                             "project_logo": cloudfront_sign(
                                 property_detail.get("project_logo")
                             ),
-                            "candle_data": candle_dict.get(
-                                str(property_detail.get(constants.INDEX_ID))
-                            ),
+                            "candle_data": candle_data,
+                            "change_percent_24_hr": f"{(change_percent_24_hr):.2f}",
                         }
                     }
                 )
@@ -89,6 +101,7 @@ def get_user_wallet(token):
             data={
                 "portfolio_detail": portfolio_details,
                 "balance": user_wallet.get("balance"),
+                "portfolio_balance": portfolio_balance,
             },
             status_code=HTTPStatus.OK,
         )
