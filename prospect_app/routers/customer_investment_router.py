@@ -55,3 +55,18 @@ def get_customers_transactions(token: str = Depends(oauth2_scheme)):
     response = customer_investment_service.get_customers_transactions(token=token)
     logger.debug("Returning From the Get Customers Transactions Router")
     return response
+
+
+@router.get("/get-property-current-wallet-value")
+def get_property_current_wallet_value(property_id: str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Property Current Wallet Value Router")
+    response = customer_investment_service.get_property_current_wallet_value(token=token, property_id=property_id)
+    logger.debug("Returning From the Get Property Current Wallet Value Router")
+    return response
+
+@router.get("/get-investment-progress-details")
+def get_investment_progress_details(property_id: str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Investment Progress Details Router")
+    response = customer_investment_service.get_investment_progress_details(token=token, property_id=property_id)
+    logger.debug("Returning From the Get Investment Progress Details Router")
+    return response

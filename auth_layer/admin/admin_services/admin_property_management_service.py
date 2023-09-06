@@ -924,9 +924,30 @@ def set_candles_of_property(request: UpdateCandleDataSchema, token):
 
         candle_collection = db[constants.CANDLE_DETAILS_SCHEMA]
         candle_list = [dict(candle) for candle in list(request.candle_data)]
+
+        if len(candle_list) == 0:
+            logger.error(f"Candle Data is empty")
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: f"Candle Data is empty"},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+        
+        latest_candle_price = candle_list[-1].get("price")
+
         candle_collection.update_one(
             {constants.PROPERTY_ID_FIELD: property_id},
             {constants.UPDATE_INDEX_DATA: {constants.CANDLE_DATA_FIELD: candle_list}},
+        )
+
+        property_collection.update_one(
+            {constants.INDEX_ID: ObjectId(property_id)},
+            {
+                constants.UPDATE_INDEX_DATA: {
+                    constants.PRICE_FIELD: latest_candle_price
+                }
+            },
         )
 
         response = admin_property_management_schemas.ResponseMessage(

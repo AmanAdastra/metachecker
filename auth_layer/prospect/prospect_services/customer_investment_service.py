@@ -59,13 +59,13 @@ def get_user_wallet(token):
             candle_dict[str(candle.get(constants.PROPERTY_ID_FIELD))] = candle.get(
                 "candle_data"
             )
-        portfolio_balance,investment_balance = 0,0
+        portfolio_balance, investment_balance = 0, 0
         for property_detail in property_details:
             property_wallet_record = user_wallet.get(
                 str(property_detail.get(constants.INDEX_ID))
             )
             wallet_quantity = property_wallet_record.get("quantity")
-            investment_value = property_wallet_record.get("investment_value")   
+            investment_value = property_wallet_record.get("investment_value")
             if wallet_quantity > 0:
                 portfolio_balance += wallet_quantity * property_detail.get("price")
                 investment_balance += investment_value
@@ -429,13 +429,13 @@ def sell_investment_share(token, quantity, property_id):
             user_wallet[property_id]["investment_value"] = 0
         else:
             user_wallet[property_id]["investment_value"] = (
-                user_wallet[property_id]["quantity"] * user_wallet[property_id]["avg_price"]
+                user_wallet[property_id]["quantity"]
+                * user_wallet[property_id]["avg_price"]
             )
             user_wallet[property_id]["avg_price"] = (
                 user_wallet[property_id]["investment_value"]
                 / user_wallet[property_id]["quantity"]
             )
-
 
         user_wallet[property_id]["updated_at"] = time.time()
 
@@ -599,4 +599,194 @@ def get_customers_transactions(token):
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Get Customers Transactions Service")
+    return response
+
+
+def get_property_current_wallet_value(
+    property_id: str,
+    token: str,
+):
+    logger.debug("Inside Get Property Current Wallet Value By Id Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        customer_wallet_collection = db[constants.USER_WALLET_SCHEMA]
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        candle_details_collection = db[constants.CANDLE_DETAILS_SCHEMA]
+
+        customer_wallet = customer_wallet_collection.find_one({"user_id": user_id})
+
+        if customer_wallet is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Customer Wallet Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        property_details = property_details_collection.find_one(
+            {constants.INDEX_ID: ObjectId(property_id)}
+        )
+
+        if property_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Property Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        candle_details = candle_details_collection.find_one(
+            {constants.PROPERTY_ID_FIELD: property_id}
+        )
+
+        if candle_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Candle Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        if len(candle_details.get("candle_data")) <= 1:
+            change_in_price = 0
+        else:
+            change_in_price = candle_details.get("candle_data")[-1].get(
+                "price"
+            ) - candle_details.get("candle_data")[-2].get("price")
+
+        property_records = customer_wallet.get(property_id)
+
+        response_dict = {
+            "project_title": property_details.get("project_title"),
+            "current_quantity": property_records.get("quantity"),
+            "avg_price": property_records.get("avg_price"),
+            "current_price": property_details.get("price"),
+            "change_in_price": change_in_price,
+        }
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data=response_dict,
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get Property Current Wallet Value Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Property Current Wallet Value Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+
+    logger.debug("Returning From the Get Property Current Wallet Value Service")
+    return response
+
+
+def get_investment_progress_details(
+    property_id: str,
+    token: str,
+):
+    logger.debug("Inside Get Investment Progress Details Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        customer_wallet_collection = db[constants.USER_WALLET_SCHEMA]
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        candle_details_collection = db[constants.CANDLE_DETAILS_SCHEMA]
+
+        customer_wallet = customer_wallet_collection.find_one({"user_id": user_id})
+
+        if customer_wallet is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Customer Wallet Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        property_wallet_info = customer_wallet.get(property_id)
+
+        if property_wallet_info is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Property Not Found in Wallet"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        property_details = property_details_collection.find_one(
+            {constants.INDEX_ID: ObjectId(property_id)}
+        )
+
+        if property_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Property Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        candle_details = candle_details_collection.find_one(
+            {constants.PROPERTY_ID_FIELD: property_id}
+        )
+
+        if candle_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Candle Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        if len(candle_details.get("candle_data")) <= 1:
+            total_return, one_day_return = 0, 0
+            total_return_in_percent, one_day_return_in_percent = 0, 0
+        else:
+            one_day_return = candle_details.get("candle_data")[-1].get(
+                "price"
+            ) - candle_details.get("candle_data")[-2].get("price")
+            one_day_return_in_percent = (
+                one_day_return
+                * 100
+                / candle_details.get("candle_data")[-2].get("price")
+            )
+            total_return = candle_details.get("candle_data")[-1].get(
+                "price"
+            ) - candle_details.get("candle_data")[0].get("price")
+            total_return_in_percent = (
+                total_return * 100 / candle_details.get("candle_data")[0].get("price")
+            )
+
+        response_dict = {
+            "total_return": total_return,
+            "total_return_in_percent": total_return_in_percent,
+            "1d_return": one_day_return,
+            "1d_return_in_percent": one_day_return_in_percent,
+            "current_value": property_details.get("price") * property_wallet_info.get("quantity"),
+            "investment_value": property_wallet_info.get("investment_value"),
+            "date_invested": property_wallet_info.get("created_at"),
+        }
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data=response_dict,
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get Investment Progress Details Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Investment Progress Details Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+
+    logger.debug("Returning From the Get Investment Progress Details Service")
     return response
