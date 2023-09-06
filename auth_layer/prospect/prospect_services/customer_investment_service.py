@@ -93,6 +93,7 @@ def get_user_wallet(token):
                             ),
                             "candle_data": candle_data,
                             "change_percent_24_hr": f"{(change_percent_24_hr):.2f}",
+                            "investmen_value": investment_value,
                         }
                     }
                 )
