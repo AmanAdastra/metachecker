@@ -59,13 +59,16 @@ def get_user_wallet(token):
             candle_dict[str(candle.get(constants.PROPERTY_ID_FIELD))] = candle.get(
                 "candle_data"
             )
-        portfolio_balance = 0
+        portfolio_balance,investment_balance = 0,0
         for property_detail in property_details:
-            wallet_quantity = user_wallet.get(
+            property_wallet_record = user_wallet.get(
                 str(property_detail.get(constants.INDEX_ID))
-            ).get("quantity")
+            )
+            wallet_quantity = property_wallet_record.get("quantity")
+            investment_value = property_wallet_record.get("investment_value")   
             if wallet_quantity > 0:
                 portfolio_balance += wallet_quantity * property_detail.get("price")
+                investment_balance += investment_value
                 candle_data = candle_dict.get(
                     str(property_detail.get(constants.INDEX_ID))
                 )
@@ -84,9 +87,7 @@ def get_user_wallet(token):
                             "project_title": property_detail.get("project_title"),
                             "address": property_detail.get("address"),
                             "price": property_detail.get("price"),
-                            "quantity": user_wallet.get(
-                                str(property_detail.get(constants.INDEX_ID))
-                            ).get("quantity"),
+                            "quantity": wallet_quantity,
                             "project_logo": cloudfront_sign(
                                 property_detail.get("project_logo")
                             ),
@@ -102,6 +103,7 @@ def get_user_wallet(token):
                 "portfolio_detail": portfolio_details,
                 "balance": user_wallet.get("balance"),
                 "portfolio_balance": portfolio_balance,
+                "investment_balance": investment_balance,
             },
             status_code=HTTPStatus.OK,
         )
@@ -298,18 +300,27 @@ def buy_investment_share(token, quantity, property_id):
             return response
 
         if user_wallet.get(property_id) is None:
+            investment_value = quantity * current_price
             logger.debug("Property Not Exists in User Wallet")
             user_wallet[property_id] = jsonable_encoder(
-                CustomerSharesInDb(quantity=quantity, avg_price=current_price)
+                CustomerSharesInDb(
+                    quantity=quantity,
+                    avg_price=current_price,
+                    investment_value=investment_value,
+                )
             )
         else:
             logger.debug("Property Already Exists in User Wallet")
+            user_wallet[property_id]["investment_value"] = user_wallet[property_id][
+                "investment_value"
+            ] + (quantity * current_price)
             user_wallet[property_id]["quantity"] = (
                 user_wallet[property_id]["quantity"] + quantity
             )
             user_wallet[property_id]["avg_price"] = (
-                user_wallet[property_id]["avg_price"] + current_price
-            ) / 2
+                user_wallet[property_id]["investment_value"]
+                / user_wallet[property_id]["quantity"]
+            )
             user_wallet[property_id]["updated_at"] = time.time()
         user_wallet["balance"] = user_wallet.get("balance") - (quantity * current_price)
 
@@ -411,6 +422,20 @@ def sell_investment_share(token, quantity, property_id):
         user_wallet[property_id]["quantity"] = (
             user_wallet[property_id]["quantity"] - quantity
         )
+
+        if user_wallet[property_id]["quantity"] == 0:
+            user_wallet[property_id]["avg_price"] = 0
+            user_wallet[property_id]["investment_value"] = 0
+        else:
+            user_wallet[property_id]["investment_value"] = (
+                user_wallet[property_id]["quantity"] * user_wallet[property_id]["avg_price"]
+            )
+            user_wallet[property_id]["avg_price"] = (
+                user_wallet[property_id]["investment_value"]
+                / user_wallet[property_id]["quantity"]
+            )
+
+
         user_wallet[property_id]["updated_at"] = time.time()
 
         user_wallet["balance"] = user_wallet.get("balance") + (quantity * current_price)
@@ -514,7 +539,18 @@ def get_customers_transactions(token):
             constants.CUSTOMER_TRANSACTION_SCHEMA
         ]
         customer_transaction_details = customer_transaction_details_collection.find(
-            {"user_id": (user_id)}, {"_id": 1, "property_id": 1, "transaction_type": 1, "transaction_amount": 1, "transaction_quantity": 1, "transaction_avg_price": 1, "transaction_id": 1, "transaction_status": 1, "transaction_date": 1}
+            {"user_id": (user_id)},
+            {
+                "_id": 1,
+                "property_id": 1,
+                "transaction_type": 1,
+                "transaction_amount": 1,
+                "transaction_quantity": 1,
+                "transaction_avg_price": 1,
+                "transaction_id": 1,
+                "transaction_status": 1,
+                "transaction_date": 1,
+            },
         )
         if customer_transaction_details is None:
             response = ResponseMessage(

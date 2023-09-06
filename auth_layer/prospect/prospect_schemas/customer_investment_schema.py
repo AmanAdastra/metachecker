@@ -9,6 +9,7 @@ class BuyInvestmentQuantityRequest(BaseModel):
 class CustomerSharesInDb(BaseModel):
     quantity: float
     avg_price: float
+    investment_value: float
     created_at: float = time.time()
     updated_at: float = time.time()
 
