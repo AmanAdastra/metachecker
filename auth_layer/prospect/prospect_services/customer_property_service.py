@@ -2005,12 +2005,10 @@ def get_top_gainers():
         region_details_collection = db[constants.REGION_DETAILS_SCHEMA]
 
         region_ids = region_details_collection.find(
-            {constants.IS_ACTIVE_FIELD: True}, {constants.INDEX_ID: 1}
+            {constants.IS_ACTIVE_FIELD: True}, {constants.INDEX_ID: 1, constants.TITLE_FIELD: 1}
         )
+        region_id_list = [(region_id[constants.INDEX_ID],region_id[constants.TITLE_FIELD]) for region_id in region_ids]
 
-        region_id_list = [region_id[constants.INDEX_ID] for region_id in region_ids]
-
-        # get the list of candles and sort by property_gain key and limit upto 5 for a region
         top_gainers_by_region_dict = {}
         for region in region_id_list:
             property_ids = list(
@@ -2019,7 +2017,7 @@ def get_top_gainers():
                     list(
                         property_details_collection.find(
                             {
-                                constants.REGION_ID_FIELD: str(region),
+                                constants.REGION_ID_FIELD: str(region[0]),
                             },
                             {constants.INDEX_ID: 1},
                         )
@@ -2035,7 +2033,6 @@ def get_top_gainers():
                     ]
                 )
             )
-            print(candle_data)
             formated_candle_data = []
             for data in candle_data:
                 property_details = property_details_collection.find_one(
@@ -2053,12 +2050,13 @@ def get_top_gainers():
                 }
                 response_data = {
                     constants.ID: str(data.get(constants.INDEX_ID)),
+                    "region_name": region[1],
                     "candle_data": data.get("candle_data"),
                     "property_gain": data.get("property_gain"),
                     "property_details": property_details_dict,
                 }
                 formated_candle_data.append(response_data)
-            top_gainers_by_region_dict[str(region)] = formated_candle_data
+            top_gainers_by_region_dict[str(region[0])] = formated_candle_data
 
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
