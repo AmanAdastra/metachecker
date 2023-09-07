@@ -530,6 +530,7 @@ def add_commercial_property(
         # Commercial Property Index
         commercial_index = CommercialPropertySchema(
             property_id=str(property_index.inserted_id),
+            property_type=request["property_type"],
             furnishing=request["furnishing"],
             built_up_area=request["built_up_area"],
             carpet_area=request["carpet_area"],
@@ -651,6 +652,7 @@ def update_commercial_property(
             {constants.INDEX_ID: ObjectId(property_id)},
             {
                 "$set": {
+                    "property_type": request["property_type"],
                     "furnishing": request["furnishing"],
                     "built_up_area": request["built_up_area"],
                     "carpet_area": request["carpet_area"],
@@ -729,6 +731,7 @@ def add_farm_property(
         # Farm Property Index
         farm_index = FarmPropertySchema(
             property_id=str(property_index.inserted_id),
+            property_type=request["property_type"],
             plot_area=request["plot_area"],
             length=request["length"],
             breadth=request["breadth"],
@@ -847,6 +850,7 @@ def update_farm_property(
             {
                 "$set": {
                     "plot_area": request["plot_area"],
+                    "property_type": request["property_type"],
                     "length": request["length"],
                     "breadth": request["breadth"],
                     "facing": request["facing"],

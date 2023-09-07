@@ -28,6 +28,9 @@ from common_layer.common_schemas.property_schema import (
     ResidentialPropertyRequestSchema,
     CommercialPropertyRequestSchema,
     FarmPropertyRequestSchema,
+    ResidentialType,
+    CommercialType,
+    FarmType,
 )
 
 
@@ -212,7 +215,7 @@ def seed_data():
                     listing_type=random.choice(["sell", "rent", "lease"]),
                     listed_by=random.choice(["owner", "broker"]),
                     property_type=random.choice(
-                        ["office", "shop", "showroom", "warehouse"]
+                        [ x.value for x in CommercialType]
                     ),
                     furnishing=random.choice(
                         ["furnished", "semi_furnished", "unfurnished"]
@@ -262,6 +265,9 @@ def seed_data():
                     is_investment_property=random.choice([True, False]),
                     listing_type=random.choice(["sell", "rent", "lease"]),
                     listed_by=random.choice(["owner", "broker"]),
+                    property_type=random.choice(
+                        [ x.value for x in FarmType]
+                    ),
                     length=random.choice([1000, 2000, 3000, 4000, 5000, 6000, 7000]),
                     breadth=random.choice(
                         [1000, 2000, 3000, 4000, 5000, 6000, 7000]

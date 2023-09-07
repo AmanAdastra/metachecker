@@ -150,6 +150,15 @@ class ResidentialType(str, Enum):
     FARM_HOUSE = "farm_house"
     HOUSES_AND_VILLA = "houses_and_villa"
 
+class CommercialType(str, Enum):
+    SHOPS = "shops"
+    OFFICES = "offices"
+    OTHERS = "others"
+
+class FarmType(str, Enum):
+    FARM_LANDS = "farm_lands"
+    FARM_HOUSES = "farm_houses"
+
 
 class Furnishing(str, Enum):
     FURNISHED = "furnished"
@@ -354,6 +363,7 @@ class FarmPropertyRequestSchema(CustomBaseSchema):
     is_investment_property: bool = False
     region_id: str
     listing_type: str
+    property_type: str
     listed_by: str
     length: float
     breadth: float
@@ -399,6 +409,7 @@ class FarmPropertyRequestSchema(CustomBaseSchema):
 
 class FarmPropertySchema(CustomBaseSchema):
     property_id: str
+    property_type: str
     plot_area: float
     length: float
     breadth: float
@@ -418,6 +429,7 @@ class CommercialPropertyRequestSchema(CustomBaseSchema):
     region_id: str
     listing_type: str
     listed_by: str
+    property_type: str
     bathrooms: int
     furnishing: str
     built_up_area: float
@@ -473,6 +485,7 @@ class CommercialPropertyRequestSchema(CustomBaseSchema):
 
 class CommercialPropertySchema(CustomBaseSchema):
     property_id: str
+    property_type: str
     furnishing: str
     built_up_area: float
     carpet_area: float
