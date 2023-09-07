@@ -44,15 +44,22 @@ def get_regions():
     try:
         region_collection = db[constants.REGION_DETAILS_SCHEMA]
         regions = list(
-            region_collection.find({constants.IS_ACTIVE_FIELD: True},{constants.INDEX_ID:1,constants.ICON_IMAGE_FIELD:1, constants.TITLE_FIELD:1}).sort(
-                constants.CREATED_AT_FIELD, -1
-            )
+            region_collection.find(
+                {constants.IS_ACTIVE_FIELD: True},
+                {
+                    constants.INDEX_ID: 1,
+                    constants.ICON_IMAGE_FIELD: 1,
+                    constants.TITLE_FIELD: 1,
+                },
+            ).sort(constants.CREATED_AT_FIELD, -1)
         )
         response_regions = []
         for region in regions:
             region[constants.ID] = str(region[constants.INDEX_ID])
             region[constants.TITLE_FIELD] = region[constants.TITLE_FIELD].title()
-            region["listed_properties_count"] = db[constants.PROPERTY_DETAILS_SCHEMA].count_documents(
+            region["listed_properties_count"] = db[
+                constants.PROPERTY_DETAILS_SCHEMA
+            ].count_documents(
                 {
                     constants.REGION_ID_FIELD: str(region[constants.INDEX_ID]),
                 }
@@ -60,6 +67,44 @@ def get_regions():
             region["icon_image_url"] = core_cloudfront.cloudfront_sign(
                 region[constants.ICON_IMAGE_FIELD]
             )
+            # Get maximum area of all properties in the region
+            max_doc_info = list(
+                db[constants.PROPERTY_DETAILS_SCHEMA].aggregate(
+                    [
+                        {
+                            "$match": {
+                                constants.REGION_ID_FIELD: str(
+                                    region[constants.INDEX_ID]
+                                ),
+                            }
+                        },
+                        {"$group": {"_id": None, "max_area": {"$max": "$area"}}},
+                    ]
+                )
+            )
+            region["max_area"] = (
+                0 if len(max_doc_info) == 0 else max_doc_info[0]["max_area"]
+            )
+
+            # Get minimum area of all properties in the region
+            min_doc_info = list(
+                db[constants.PROPERTY_DETAILS_SCHEMA].aggregate(
+                    [
+                        {
+                            "$match": {
+                                constants.REGION_ID_FIELD: str(
+                                    region[constants.INDEX_ID]
+                                ),
+                            }
+                        },
+                        {"$group": {"_id": None, "min_area": {"$min": "$area"}}},
+                    ]
+                )
+            )
+            region["min_area"] = (
+                0 if len(min_doc_info) == 0 else min_doc_info[0]["min_area"]
+            )
+
             region[constants.ID] = str(region[constants.INDEX_ID])
             del region[constants.INDEX_ID]
             del region[constants.ICON_IMAGE_FIELD]
@@ -1483,7 +1528,8 @@ def add_seed_property(
     logger.debug("Inside Add Residential Property Service")
     try:
         parnter_user_details = db[constants.USER_DETAILS_SCHEMA].find_one(
-            {constants.USER_TYPE_FIELD: UserTypes.PARTNER.value})
+            {constants.USER_TYPE_FIELD: UserTypes.PARTNER.value}
+        )
         if parnter_user_details is None:
             user_id = "change_user_id"
         else:
@@ -1757,7 +1803,7 @@ def get_property_by_id(property_id: str):
             ] = core_cloudfront.cloudfront_sign(
                 property_details[constants.PROPERTY_DOCUMENT_FIELD]
             )
-        
+
         if property_details.get(constants.BROCHURE_TITLE_FIELD):
             property_details[
                 constants.PROPERTY_BROCHURE_FIELD
@@ -1899,7 +1945,9 @@ def upload_brochure_or_project_document(
                 {constants.INDEX_ID: ObjectId(property_id)},
                 {
                     "$set": {
-                        constants.PROPERTY_BROCHURE_FIELD: upload_response["data"]["key"],
+                        constants.PROPERTY_BROCHURE_FIELD: upload_response["data"][
+                            "key"
+                        ],
                         constants.BROCHURE_TITLE_FIELD: document_title,
                     }
                 },
@@ -1909,7 +1957,9 @@ def upload_brochure_or_project_document(
                 {constants.INDEX_ID: ObjectId(property_id)},
                 {
                     "$set": {
-                        constants.PROPERTY_DOCUMENT_FIELD: upload_response["data"]["key"],
+                        constants.PROPERTY_DOCUMENT_FIELD: upload_response["data"][
+                            "key"
+                        ],
                         constants.DOCUMENT_TITLE_FIELD: document_title,
                     }
                 },
