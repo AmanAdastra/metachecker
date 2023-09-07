@@ -79,6 +79,7 @@ CANDLE_DETAILS_SCHEMA = "candle_details"
 ADS_CARD_DETAILS_SCHEMA = "ads_card_details"
 CTA_CARD_DETAILS_SCHEMA = "cta_card_details"
 CUSTOMER_TRANSACTION_SCHEMA = "customer_transactions"
+CUSTOMER_LEADS_SCHEMA = "customer_leads"
 
 # Schemas Fields
 WELCOME_CARD_IMAGE_FIELD = "welcome_card_image"

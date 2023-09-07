@@ -10,3 +10,9 @@ class ResponseMessage(BaseModel):
     type: str
     data: Any
     status_code: int
+
+class CustomerLeadsInDB(CustomBaseSchema):
+    user_id: str
+    listed_by_user_id: str
+    property_id: str
+    status: str

@@ -14,8 +14,22 @@ router = APIRouter(
 
 
 @router.get("/get-investors-project")
-def get_investors_projects(token: str = Depends(oauth2_scheme)):
+def get_investors_projects(page_number:int, per_page:int,token: str = Depends(oauth2_scheme)):
     logger.debug("Inside Get Investors Projects Router")
-    response = customer_leads_management_service.get_investors_projects(token)
+    response = customer_leads_management_service.get_investors_projects(page_number, per_page, token)
     logger.debug("Returning From the Get Investors Project Router")
+    return response
+
+@router.post("/generate-lead-for-property")
+def generate_lead_for_property(property_id:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Generate Lead For Property Router")
+    response = customer_leads_management_service.generate_lead_for_property(property_id, token)
+    logger.debug("Returning From the Generate Lead For Property Router")
+    return response
+
+@router.get("/check-already-lead-exist")
+def check_already_lead_exist(property_id:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Check Already Lead Exist Router")
+    response = customer_leads_management_service.check_already_lead_exist(property_id, token)
+    logger.debug("Returning From the Check Already Lead Exist Router")
     return response
