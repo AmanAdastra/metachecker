@@ -195,6 +195,7 @@ class PropertySchema(CustomBaseSchema):
     project_logo: str
     project_title: str
     price: float
+    area: float
     view_count: int
     video_url: str
     images: Optional[list] = []

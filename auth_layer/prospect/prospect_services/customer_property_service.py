@@ -44,17 +44,25 @@ def get_regions():
     try:
         region_collection = db[constants.REGION_DETAILS_SCHEMA]
         regions = list(
-            region_collection.find({constants.IS_ACTIVE_FIELD: True}).sort(
+            region_collection.find({constants.IS_ACTIVE_FIELD: True},{constants.INDEX_ID:1,constants.ICON_IMAGE_FIELD:1, constants.TITLE_FIELD:1}).sort(
                 constants.CREATED_AT_FIELD, -1
             )
         )
         response_regions = []
         for region in regions:
             region[constants.ID] = str(region[constants.INDEX_ID])
-            region["region_icon_image"] = core_cloudfront.cloudfront_sign(
+            region[constants.TITLE_FIELD] = region[constants.TITLE_FIELD].title()
+            region["listed_properties_count"] = db[constants.PROPERTY_DETAILS_SCHEMA].count_documents(
+                {
+                    constants.REGION_ID_FIELD: str(region[constants.INDEX_ID]),
+                }
+            )
+            region["icon_image_url"] = core_cloudfront.cloudfront_sign(
                 region[constants.ICON_IMAGE_FIELD]
             )
+            region[constants.ID] = str(region[constants.INDEX_ID])
             del region[constants.INDEX_ID]
+            del region[constants.ICON_IMAGE_FIELD]
             response_regions.append(region)
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
@@ -250,6 +258,7 @@ def add_residential_property(
             project_logo="",
             project_title=request["project_title"],
             price=request["price"],
+            area=request["carpet_area"],
             view_count=0,
             video_url=request["video_url"],
             address=request["address"],
@@ -370,6 +379,7 @@ def update_residential_property(
                     "description": request["description"],
                     "project_title": request["project_title"],
                     "price": request["price"],
+                    "area": request["carpet_area"],
                     "video_url": request["video_url"],
                     "address": request["address"],
                     "location": {
@@ -451,6 +461,7 @@ def add_commercial_property(
             project_logo="",
             project_title=request["project_title"],
             price=request["price"],
+            area=request["carpet_area"],
             view_count=0,
             video_url=request["video_url"],
             address=request["address"],
@@ -573,6 +584,7 @@ def update_commercial_property(
                     "description": request["description"],
                     "project_title": request["project_title"],
                     "price": request["price"],
+                    "area": request["carpet_area"],
                     "video_url": request["video_url"],
                     "address": request["address"],
                     "location": {
@@ -647,6 +659,7 @@ def add_farm_property(
             project_logo="",
             project_title=request["project_title"],
             price=request["price"],
+            area=request["plot_area"],
             view_count=0,
             video_url="",
             address=request["address"],
@@ -758,6 +771,7 @@ def update_farm_property(
                 "$set": {
                     "listing_type": request["listing_type"],
                     "region_id": request["region_id"],
+                    "area": request["plot_area"],
                     "listed_by": request["listed_by"],
                     "possession_type": request["possession_type"],
                     "category": "farm",
