@@ -22,8 +22,12 @@ from pymongo import GEOSPHERE
 from database import db
 from common_layer import constants
 from common_layer.common_services import user_management_service
-from common_layer.common_schemas.user_schema import UserTypes
-from common_layer.common_schemas.property_schema import ResidentialPropertyRequestSchema
+from common_layer.common_schemas.user_schema import UserTypes, RegisterRequest
+from common_layer.common_schemas.property_schema import (
+    ResidentialPropertyRequestSchema,
+    CommercialPropertyRequestSchema,
+    FarmPropertyRequestSchema,
+)
 
 middleware = [
     Middleware(
@@ -57,6 +61,60 @@ app.add_middleware(
 app.include_router(customer_router.router)
 app.include_router(customer_property_router.router)
 app.include_router(customer_investment_router.router)
+
+
+@app.on_event("startup")
+def add_seed_users():
+    logger.debug("Adding admin user")
+    if (
+        db[constants.USER_DETAILS_SCHEMA].count_documents(
+            {"user_type": UserTypes.SUPER_ADMIN.value}
+        )
+        == 0
+    ):
+        admin_user = RegisterRequest(
+            legal_name="Admin",
+            mobile_number="919999999991",
+            email_id="admin@mailinator.com",
+            password="Test@123",
+            password_confirmed="Test@123",
+            user_type=UserTypes.SUPER_ADMIN.value,
+        )
+        response = user_management_service.register_user(admin_user)
+        logger.debug("Admin user added: " + str(response))
+    if (
+        db[constants.USER_DETAILS_SCHEMA].count_documents(
+            {"user_type": UserTypes.PARTNER.value}
+        )
+        == 0
+    ):
+        partner_user = RegisterRequest(
+            legal_name="Partner",
+            mobile_number="919999999992",
+            email_id="partner@mailinator.com",
+            password="Test@123",
+            password_confirmed="Test@123",
+            user_type=UserTypes.PARTNER.value,
+        )
+        response = user_management_service.register_user(partner_user)
+        logger.debug("Partner user added: " + str(response))
+
+    if (
+        db[constants.USER_DETAILS_SCHEMA].count_documents(
+            {"user_type": UserTypes.CUSTOMER.value}
+        )
+        == 0
+    ):
+        customer_user = RegisterRequest(
+            legal_name="John Doe",
+            mobile_number="919999999999",
+            email_id="johndoe@mailinator.com",
+            password="Test@123",
+            password_confirmed="Test@123",
+            user_type=UserTypes.CUSTOMER.value,
+        )
+        response = user_management_service.register_user(customer_user)
+        logger.debug("Customer user added: " + str(response))
 
 
 @app.on_event("startup")

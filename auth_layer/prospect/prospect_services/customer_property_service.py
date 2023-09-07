@@ -13,6 +13,7 @@ from common_layer.common_services.utils import (
     get_nearest_region_id,
     upload_pdf,
 )
+from common_layer.common_schemas.user_schema import UserTypes
 from auth_layer.admin.admin_schemas import admin_property_management_schemas
 from common_layer.common_services.oauth_handler import oauth2_scheme
 from core_layer.aws_s3 import s3
@@ -1464,7 +1465,12 @@ def add_seed_property(
 ):
     logger.debug("Inside Add Residential Property Service")
     try:
-        user_id = "change_user_id"
+        parnter_user_details = db[constants.USER_DETAILS_SCHEMA].find_one(
+            {constants.USER_TYPE_FIELD: UserTypes.PARTNER.value})
+        if parnter_user_details is None:
+            user_id = "change_user_id"
+        else:
+            user_id = str(parnter_user_details.get(constants.INDEX_ID))
         request = jsonable_encoder(request)
         residential_property_collection = db[
             constants.RESIDENTIAL_PROPERTY_DETAILS_SCHEMA
