@@ -767,7 +767,8 @@ def get_investment_progress_details(
             "total_return_in_percent": total_return_in_percent,
             "1d_return": one_day_return,
             "1d_return_in_percent": one_day_return_in_percent,
-            "current_value": property_details.get("price") * property_wallet_info.get("quantity"),
+            "current_value": property_details.get("price")
+            * property_wallet_info.get("quantity"),
             "investment_value": property_wallet_info.get("investment_value"),
             "date_invested": property_wallet_info.get("created_at"),
         }
@@ -789,4 +790,61 @@ def get_investment_progress_details(
         )
 
     logger.debug("Returning From the Get Investment Progress Details Service")
+    return response
+
+
+def get_property_order_history(property_id: str, token: str, page_number: int, per_page: int):
+    logger.debug("Inside Get Property Order History Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        customer_transaction_details_collection = db[
+            constants.CUSTOMER_TRANSACTION_SCHEMA
+        ]
+        customer_transaction_details = customer_transaction_details_collection.find(
+            {"user_id": (user_id), "property_id": property_id},
+        ).sort("transaction_date", -1).skip((page_number - 1) * per_page).limit(per_page)
+        if customer_transaction_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Transaction Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        customer_transaction_details = list(customer_transaction_details)
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        property_details = property_details_collection.find_one(
+            {constants.INDEX_ID: ObjectId(property_id)},
+            {"project_title": 1, "_id": 1},
+        )
+        if property_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Property Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        transactions = []
+        for transaction in customer_transaction_details:
+            transaction["_id"] = str(transaction.get("_id"))
+            transaction["property_title"] = property_details.get("project_title")
+            transactions.append(transaction)
+
+        count_total_transactions = customer_transaction_details_collection.count_documents({"user_id": (user_id), "property_id": property_id})
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"transactions": transactions, "total_transactions": count_total_transactions, "page_number": page_number, "per_page": per_page},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Property Order History Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Property Order History Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Property Order History Service")
     return response

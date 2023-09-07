@@ -70,3 +70,12 @@ def get_investment_progress_details(property_id: str, token: str = Depends(oauth
     response = customer_investment_service.get_investment_progress_details(token=token, property_id=property_id)
     logger.debug("Returning From the Get Investment Progress Details Router")
     return response
+
+@router.get("/get-property-order-history")
+def get_property_order_history(page_number:int, per_page:int,property_id:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Property Order History Router")
+    response = customer_investment_service.get_property_order_history(
+        token=token, property_id=property_id, page_number=page_number, per_page=per_page
+    )
+    logger.debug("Returning From the Get Property Order History Router")
+    return response
