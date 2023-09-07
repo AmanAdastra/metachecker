@@ -1996,19 +1996,74 @@ def upload_brochure_or_project_document(
     logger.debug("Returning From the Upload Brochure Or Project Document Service")
     return response
 
+
 def get_top_gainers():
     logger.debug("Inside Get Top Gainers Service")
     try:
-
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         candle_details_collection = db[constants.CANDLE_DETAILS_SCHEMA]
+        region_details_collection = db[constants.REGION_DETAILS_SCHEMA]
 
+        region_ids = region_details_collection.find(
+            {constants.IS_ACTIVE_FIELD: True}, {constants.INDEX_ID: 1}
+        )
 
-        response_list = []
+        region_id_list = [region_id[constants.INDEX_ID] for region_id in region_ids]
+
+        # get the list of candles and sort by property_gain key and limit upto 5 for a region
+        top_gainers_by_region_dict = {}
+        for region in region_id_list:
+            property_ids = list(
+                map(
+                    lambda x: str(x.get(constants.INDEX_ID)),
+                    list(
+                        property_details_collection.find(
+                            {
+                                constants.REGION_ID_FIELD: str(region),
+                            },
+                            {constants.INDEX_ID: 1},
+                        )
+                    ),
+                )
+            )
+            candle_data = list(
+                candle_details_collection.aggregate(
+                    [
+                        {"$match": {"property_id": {"$in": property_ids}}},
+                        {"$sort": {"property_gain": -1}},
+                        {"$limit": 5},
+                    ]
+                )
+            )
+            print(candle_data)
+            formated_candle_data = []
+            for data in candle_data:
+                property_details = property_details_collection.find_one(
+                    {constants.INDEX_ID: ObjectId(data.get("property_id"))}
+                )
+                property_details_dict = {
+                    constants.ID: str(property_details.get(constants.INDEX_ID)),
+                    constants.PROJECT_TITLE_FIELD: property_details.get(
+                        constants.PROJECT_TITLE_FIELD
+                    ),
+                    constants.PROJECT_LOGO_FIELD: core_cloudfront.cloudfront_sign(
+                        property_details.get(constants.PROJECT_LOGO_FIELD)
+                    ),
+                    constants.PRICE_FIELD: property_details.get(constants.PRICE_FIELD),
+                }
+                response_data = {
+                    constants.ID: str(data.get(constants.INDEX_ID)),
+                    "candle_data": data.get("candle_data"),
+                    "property_gain": data.get("property_gain"),
+                    "property_details": property_details_dict,
+                }
+                formated_candle_data.append(response_data)
+            top_gainers_by_region_dict[str(region)] = formated_candle_data
+
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={
-                "properties": response_list,
+                "gainers_dict": top_gainers_by_region_dict,
             },
             status_code=HTTPStatus.OK,
         )
