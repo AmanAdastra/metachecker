@@ -186,3 +186,109 @@ def check_already_lead_exist(property_id: str, token: str = Depends(oauth2_schem
         )
     logger.debug("Returning From the Check Already Lead Exist Service")
     return response
+
+def get_candle_of_property(
+        property_id: str, token: str = Depends(oauth2_scheme)
+):
+    logger.debug("Inside Get Candle Of Property Service")
+    try:
+        decoded_token = token_decoder(token)
+        logger.debug("Decoded Token : " + str(decoded_token))
+        user_id = decoded_token.get(constants.ID)
+        logger.debug("User Id : " + str(user_id))
+
+        candle_details_collection = db[constants.CANDLE_DETAILS_SCHEMA]
+
+        candle_data = candle_details_collection.find_one(
+            {constants.PROPERTY_ID_FIELD: property_id},
+        )
+
+        if not candle_data:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={"message": "Candle Data Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        
+        candle_data[constants.ID] = str(candle_data[constants.INDEX_ID])
+        del candle_data[constants.INDEX_ID]
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"candle_data": candle_data},
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get Candle Of Property Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Candle Of Property Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Candle Of Property Service")
+    return response
+
+def get_investors_leads(page_number:int,per_page:int,token:str):
+    logger.debug("Inside Get Investors Leads Service")
+    try:
+        decoded_token = token_decoder(token)
+        logger.debug("Decoded Token : " + str(decoded_token))
+        user_id = decoded_token.get(constants.ID)
+        logger.debug("User Id : " + str(user_id))    
+
+        customer_leads_collection = db[constants.CUSTOMER_LEADS_SCHEMA]
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        """
+            Name, email, phone, property name, property address, property logo, property candle, property change, property change percent
+        """
+        customer_leads = customer_leads_collection.find(
+            {constants.LISTED_BY_USER_ID_FIELD: (user_id)},
+            {
+                constants.INDEX_ID: 1,
+                constants.USER_ID_FIELD: 1,
+                constants.PROPERTY_ID_FIELD: 1,
+                "status": 1,
+            },
+        ).skip((page_number - 1) * per_page).limit(per_page)
+        response_list = []
+        for customer_lead in customer_leads:
+            property_details = property_details_collection.find_one(
+                {constants.INDEX_ID: ObjectId(customer_lead[constants.PROPERTY_ID_FIELD])},
+                {
+                    constants.INDEX_ID: 1,
+                    constants.PROJECT_TITLE_FIELD: 1,
+                    constants.PROJECT_LOGO_FIELD: 1,
+                    constants.ADDRESS_FIELD: 1,
+                },
+            )
+            property_details[constants.ID] = str(property_details[constants.INDEX_ID])
+            property_details[
+                constants.PROJECT_LOGO_FIELD
+            ] = core_cloudfront.cloudfront_sign(
+                property_details[constants.PROJECT_LOGO_FIELD]
+            )
+            del property_details[constants.INDEX_ID]
+            customer_lead[constants.ID] = str(customer_lead[constants.INDEX_ID])
+            del customer_lead[constants.INDEX_ID]
+            customer_lead["property_details"] = property_details
+            response_list.append(customer_lead)    
+        document_count = customer_leads_collection.count_documents(
+            {constants.LISTED_BY_USER_ID_FIELD: (user_id)}
+        )
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={ "leads": response_list, "total_count": document_count, "page_number": page_number, "per_page": per_page },
+            status_code=HTTPStatus.OK,
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in Get Investors Leads Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Investors Leads Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Investors Leads Service")
+    return response
