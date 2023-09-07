@@ -497,6 +497,7 @@ class CandleData(BaseModel):
 
 class CandleDataSchema(CustomBaseSchema):
     property_id: str
+    property_gain: float
     candle_data: list[CandleData]
 
 class UpdateCandleDataSchema(BaseModel):

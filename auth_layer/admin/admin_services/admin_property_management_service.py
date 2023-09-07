@@ -936,9 +936,13 @@ def set_candles_of_property(request: UpdateCandleDataSchema, token):
         
         latest_candle_price = candle_list[-1].get("price")
 
+        property_gain = latest_candle_price - candle_list[0].get("price") if len(candle_list) > 0 else 0
+
+        property_gain_percent = (property_gain / candle_list[0].get("price")) * 100 if len(candle_list) > 0 else 0
+
         candle_collection.update_one(
             {constants.PROPERTY_ID_FIELD: property_id},
-            {constants.UPDATE_INDEX_DATA: {constants.CANDLE_DATA_FIELD: candle_list}},
+            {constants.UPDATE_INDEX_DATA: {constants.CANDLE_DATA_FIELD: candle_list, constants.PROPERTY_GAIN_FIELD: property_gain_percent}},
         )
 
         property_collection.update_one(

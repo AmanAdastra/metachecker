@@ -346,6 +346,7 @@ def add_residential_property(
         candle_collection = db[constants.CANDLE_DETAILS_SCHEMA]
         candle_index = CandleDataSchema(
             property_id=str(property_index.inserted_id),
+            property_gain=0,
             candle_data=[{"timestamp": time.time(), "price": request["price"]}],
         )
         candle_index = candle_collection.insert_one(jsonable_encoder(candle_index))
@@ -543,6 +544,7 @@ def add_commercial_property(
         # Candle Data Index
         candle_collection = db[constants.CANDLE_DETAILS_SCHEMA]
         candle_index = CandleDataSchema(
+            property_gain=0,
             property_id=str(property_index.inserted_id),
             candle_data=[{"timestamp": time.time(), "price": request["price"]}],
         )
@@ -738,6 +740,7 @@ def add_farm_property(
         candle_collection = db[constants.CANDLE_DETAILS_SCHEMA]
         candle_index = CandleDataSchema(
             property_id=str(property_index.inserted_id),
+            property_gain=0,
             candle_data=[{"timestamp": time.time(), "price": request["price"]}],
         )
 
@@ -1593,6 +1596,7 @@ def add_seed_property(
         candle_collection = db[constants.CANDLE_DETAILS_SCHEMA]
         candle_index = CandleDataSchema(
             property_id=str(property_index.inserted_id),
+            property_gain=0,
             candle_data=[{"timestamp": time.time(), "price": request["price"]}],
         )
         candle_index = candle_collection.insert_one(jsonable_encoder(candle_index))
@@ -1990,4 +1994,30 @@ def upload_brochure_or_project_document(
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Upload Brochure Or Project Document Service")
+    return response
+
+def get_top_gainers():
+    logger.debug("Inside Get Top Gainers Service")
+    try:
+
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        candle_details_collection = db[constants.CANDLE_DETAILS_SCHEMA]
+
+
+        response_list = []
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={
+                "properties": response_list,
+            },
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Top Gainers Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Top Gainers Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Top Gainers Service")
     return response

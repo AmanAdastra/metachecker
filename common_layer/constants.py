@@ -141,6 +141,7 @@ PROPERTY_BROCHURE_FIELD = "property_brochure"
 PROPERTY_DOCUMENT_FIELD = "property_document"
 DOCUMENT_TITLE_FIELD = "document_title"
 BROCHURE_TITLE_FIELD = "brochure_title"
+PROPERTY_GAIN_FIELD = "property_gain"
 
 # Messages
 EMAIL_ALREADY_USED = "Email already used!"

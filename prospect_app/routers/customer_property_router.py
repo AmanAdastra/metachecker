@@ -189,3 +189,11 @@ def upload_brochure_or_project_document(property_id:str,type:str,document_title:
     )
     logger.debug("Returning From the Upload Property Documents Router")
     return response
+
+
+@router.get("/get-top-gainers")
+def get_top_gainers():
+    logger.debug("Inside Get Top Gainers Router")
+    response = customer_property_service.get_top_gainers()
+    logger.debug("Returning From the Get Top Gainers Router")
+    return response
