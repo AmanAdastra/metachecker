@@ -242,6 +242,7 @@ class PropertySchema(CustomBaseSchema):
 
 class ResidentialPropertyRequestSchema(CustomBaseSchema):
     is_investment_property: bool = False
+    region_id: str
     listing_type: str
     listed_by: str
     property_type: str
@@ -350,6 +351,7 @@ class ResidentialPropertySchema(CustomBaseSchema):
 
 class FarmPropertyRequestSchema(CustomBaseSchema):
     is_investment_property: bool = False
+    region_id: str
     listing_type: str
     listed_by: str
     length: float
@@ -412,6 +414,7 @@ class FarmPropertySchema(CustomBaseSchema):
 
 class CommercialPropertyRequestSchema(CustomBaseSchema):
     is_investment_property: bool = False
+    region_id: str
     listing_type: str
     listed_by: str
     bathrooms: int

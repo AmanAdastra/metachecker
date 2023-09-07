@@ -260,7 +260,7 @@ def add_residential_property(
                     request["location"]["latitude"],
                 ],
             },
-            region_id="",
+            region_id=request["region_id"],
             verified=False,
             property_details_id="",
             candle_data_id="",
@@ -364,6 +364,7 @@ def update_residential_property(
             {
                 "$set": {
                     "listing_type": request["listing_type"],
+                    "region_id": request["region_id"],
                     "listed_by": request["listed_by"],
                     "possession_type": request["possession_type"],
                     "description": request["description"],
@@ -440,6 +441,7 @@ def add_commercial_property(
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         property_index = PropertySchema(
             is_investment_property=request["is_investment_property"],
+            region_id=request["region_id"],
             listed_by_user_id=user_id,
             listing_type=request["listing_type"],
             listed_by=request["listed_by"],
@@ -566,6 +568,7 @@ def update_commercial_property(
             {
                 "$set": {
                     "listing_type": request["listing_type"],
+                    "region_id": request["region_id"],
                     "listed_by": request["listed_by"],
                     "possession_type": request["possession_type"],
                     "description": request["description"],
@@ -635,6 +638,7 @@ def add_farm_property(
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         property_index = PropertySchema(
             is_investment_property=request["is_investment_property"],
+            region_id=request["region_id"],
             listed_by_user_id=user_id,
             listing_type=request["listing_type"],
             listed_by=request["listed_by"],
@@ -755,6 +759,7 @@ def update_farm_property(
             {
                 "$set": {
                     "listing_type": request["listing_type"],
+                    "region_id": request["region_id"],
                     "listed_by": request["listed_by"],
                     "possession_type": request["possession_type"],
                     "category": "farm",
