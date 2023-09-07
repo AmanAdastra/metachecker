@@ -197,3 +197,10 @@ def get_top_gainers():
     response = customer_property_service.get_top_gainers()
     logger.debug("Returning From the Get Top Gainers Router")
     return response
+
+@router.get("/get-similar-properties")
+def get_similar_properties(region_id:str, page_number:int, per_page:int):
+    logger.debug("Inside Get Similar Properties Router")
+    response = customer_property_service.get_similar_properties(region_id=region_id, page_number=page_number, per_page=per_page)
+    logger.debug("Returning From the Get Similar Properties Router")
+    return response
