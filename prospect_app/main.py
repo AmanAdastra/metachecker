@@ -4,6 +4,7 @@ import json
 import random
 
 sys.path.append(os.path.realpath(".."))
+from datetime import timedelta
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -21,13 +22,14 @@ from auth_layer.prospect.prospect_services import customer_property_service
 from pymongo import GEOSPHERE
 from database import db
 from common_layer import constants
-from common_layer.common_services import user_management_service
+from common_layer.common_services import user_management_service, oauth_handler
 from common_layer.common_schemas.user_schema import UserTypes, RegisterRequest
 from common_layer.common_schemas.property_schema import (
     ResidentialPropertyRequestSchema,
     CommercialPropertyRequestSchema,
     FarmPropertyRequestSchema,
 )
+
 
 middleware = [
     Middleware(
@@ -81,7 +83,7 @@ def add_seed_users():
             user_type=UserTypes.SUPER_ADMIN.value,
         )
         response = user_management_service.register_user(admin_user)
-        logger.debug("Admin user added: " + str(response))
+        logger.debug("Admin user added")
     if (
         db[constants.USER_DETAILS_SCHEMA].count_documents(
             {"user_type": UserTypes.PARTNER.value}
@@ -97,7 +99,7 @@ def add_seed_users():
             user_type=UserTypes.PARTNER.value,
         )
         response = user_management_service.register_user(partner_user)
-        logger.debug("Partner user added: " + str(response))
+        logger.debug("Partner user added" )
 
     if (
         db[constants.USER_DETAILS_SCHEMA].count_documents(
@@ -114,7 +116,7 @@ def add_seed_users():
             user_type=UserTypes.CUSTOMER.value,
         )
         response = user_management_service.register_user(customer_user)
-        logger.debug("Customer user added: " + str(response))
+        logger.debug("Customer user added ")
 
 
 @app.on_event("startup")
@@ -131,9 +133,27 @@ def seed_data():
         logger.debug("Index created: " + str(response2))
         logger.debug("App startup: " + str(datetime.now()))
         logger.debug("Inserting the property seed data")
+
+        user_details = db[constants.USER_DETAILS_SCHEMA].find_one(
+            {"user_type": UserTypes.PARTNER.value}
+        )
+        if not user_details:
+            logger.debug("No partner user found")
+            return
+
+        subject = {
+        constants.EMAIL_ID_FIELD: user_details[constants.EMAIL_ID_FIELD],
+        constants.ID: str(user_details[constants.INDEX_ID]),
+        constants.USER_TYPE_FIELD: user_details[constants.USER_TYPE_FIELD],
+        }
+        access_token = oauth_handler.create_access_token(
+            data=subject,
+            expires_delta=timedelta(seconds=constants.ACCESS_TOKEN_EXPIRY_TIME),
+        )
+
         with open("./seed_data/map.json") as f:
             data = json.load(f)
-            for location in data:
+            for location in data[:5]:
                 request = ResidentialPropertyRequestSchema(
                     is_investment_property=random.choice([True, False]),
                     listing_type=random.choice(["sell", "rent", "lease"]),
@@ -183,5 +203,96 @@ def seed_data():
                     roi_percentage=random.choice([4, 5, 6, 7, 8, 9, 10]),
                 )
 
-                response = customer_property_service.add_seed_property(request)
+                response = customer_property_service.add_residential_property(request, access_token)
+                logger.debug("Seed data inserted: " + str(response))
+
+            for location in data[5:10]:
+                request = CommercialPropertyRequestSchema(
+                    is_investment_property=random.choice([True, False]),
+                    listing_type=random.choice(["sell", "rent", "lease"]),
+                    listed_by=random.choice(["owner", "broker"]),
+                    property_type=random.choice(
+                        ["office", "shop", "showroom", "warehouse"]
+                    ),
+                    furnishing=random.choice(
+                        ["furnished", "semi_furnished", "unfurnished"]
+                    ),
+                    built_up_area=random.choice(
+                        [1000, 2000, 3000, 4000, 5000, 6000, 7000]
+                    ),
+                    carpet_area=random.choice(
+                        [1000, 2000, 3000, 4000, 5000, 6000, 7000]
+                    ),
+                    maintenance=random.choice(
+                        [1000, 2000, 3000, 4000, 5000, 6000, 7000]
+                    ),
+                    car_parking=random.choice([True, False]),
+                    facing=random.choice(["north", "south", "east", "west"]),
+                    balcony=random.choice([True, False]),
+                    bathrooms=random.choice([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+                    possession_type=random.choice(
+                        ["ready_to_move", "under_construction", "new_launch"]
+                    ),
+                    description="This is a beautiful property",
+                    project_title=random.choice(
+                        [
+                            "Beautiful property",
+                            "Amazing property",
+                            "Awesome property",
+                            "Great property",
+                        ]
+                    ),
+                    price=random.choice([100, 200, 300, 400, 500, 600, 700]),
+                    video_url="https://www.youtube.com/watch?v=6n3pFFPSlW4",
+                    images=[],
+                    address=location["address"],
+                    location={
+                        "latitude": location["latitude"],
+                        "longitude": location["longitude"],
+                    },
+                    region_id="put_region_id_here",
+                    roi_percentage=random.choice([4, 5, 6, 7, 8, 9, 10]),
+                )
+
+                response = customer_property_service.add_commercial_property(request, access_token)
+                logger.debug("Seed data inserted: " + str(response))
+
+            for location in data[10:]:
+                request = FarmPropertyRequestSchema(
+                    is_investment_property=random.choice([True, False]),
+                    listing_type=random.choice(["sell", "rent", "lease"]),
+                    listed_by=random.choice(["owner", "broker"]),
+                    length=random.choice([1000, 2000, 3000, 4000, 5000, 6000, 7000]),
+                    breadth=random.choice(
+                        [1000, 2000, 3000, 4000, 5000, 6000, 7000]
+                    ),
+                    plot_area=random.choice(
+                        [1000, 2000, 3000, 4000, 5000, 6000, 7000]
+                    ),
+                    facing=random.choice(["north", "south", "east", "west"]),
+                    possession_type=random.choice(
+                        ["ready_to_move", "under_construction", "new_launch"]
+                    ),
+                    description="This is a beautiful property",
+                    project_title=random.choice(
+                        [
+                            "Beautiful property",
+                            "Amazing property",
+                            "Awesome property",
+                            "Great property",
+                        ]
+                    ),
+                    price=random.choice([100, 200, 300, 400, 500, 600, 700]),
+                    video_url="https://www.youtube.com/watch?v=6n3pFFPSlW4",
+                    images=[],
+                    address=location["address"],
+                    location={
+                        "latitude": location["latitude"],
+                        "longitude": location["longitude"],
+                    },
+                    region_id="put_region_id_here",
+                    roi_percentage=random.choice([4, 5, 6, 7, 8, 9, 10]),
+                )
+
+                response = customer_property_service.add_farm_property(request, access_token)
                 logger.debug("Seed data inserted: " + str(response))
