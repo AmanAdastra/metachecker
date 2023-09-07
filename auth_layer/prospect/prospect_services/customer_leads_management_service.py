@@ -364,3 +364,36 @@ def get_investors_leads_details(
         )
     logger.debug("Returning From the Get Investors Leads Details Service")
     return response
+
+def get_dashboard_details(
+        token: str = Depends(oauth2_scheme)
+):
+    logger.debug("Inside Get Dashboard Details Service")
+    try:
+        decoded_token = token_decoder(token)
+        logger.debug("Decoded Token : " + str(decoded_token))
+        user_id = decoded_token.get(constants.ID)
+        logger.debug("User Id : " + str(user_id))
+
+        customer_leads_collection = db[constants.CUSTOMER_LEADS_SCHEMA]
+
+        total_leads = customer_leads_collection.count_documents(
+            {constants.LISTED_BY_USER_ID_FIELD: (user_id), "status": "active"}
+        )
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={ "total_leads": total_leads},
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get Dashboard Details Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Dashboard Details Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+
+    logger.debug("Returning From the Get Dashboard Details Service")
+    return response

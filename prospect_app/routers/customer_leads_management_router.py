@@ -54,3 +54,10 @@ def get_investors_leads_details(lead_id:str, token: str = Depends(oauth2_scheme)
     response = customer_leads_management_service.get_investors_leads_details(lead_id, token)
     logger.debug("Returning From the Get Investors Leads Details Router")
     return response
+
+@router.get("/get-dashboard-details")
+def get_dashboard_details(token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Dashboard Details Router")
+    response = customer_leads_management_service.get_dashboard_details(token)
+    logger.debug("Returning From the Get Dashboard Details Router")
+    return response
