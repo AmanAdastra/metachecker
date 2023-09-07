@@ -292,3 +292,75 @@ def get_investors_leads(page_number:int,per_page:int,token:str):
         )
     logger.debug("Returning From the Get Investors Leads Service")
     return response
+
+def get_investors_leads_details(
+        lead_id: str,
+        token: str = Depends(oauth2_scheme)
+):
+    logger.debug("Inside Get Investors Leads Details Service")
+    try:
+        decoded_token = token_decoder(token)
+        logger.debug("Decoded Token : " + str(decoded_token))
+        user_id = decoded_token.get(constants.ID)
+        logger.debug("User Id : " + str(user_id))
+
+        customer_leads_collection = db[constants.CUSTOMER_LEADS_SCHEMA]
+
+        customer_lead = customer_leads_collection.find_one(
+            {constants.INDEX_ID: ObjectId(lead_id)},
+            {
+                constants.INDEX_ID: 1,
+                constants.USER_ID_FIELD: 1,
+                constants.PROPERTY_ID_FIELD: 1,
+                "status": 1,
+            },
+        )
+
+        if not customer_lead:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={"message": "Lead Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        
+        customer_lead[constants.ID] = str(customer_lead[constants.INDEX_ID])
+        del customer_lead[constants.INDEX_ID]
+
+        user_details_collection = db[constants.USER_DETAILS_SCHEMA]
+
+        user_details = user_details_collection.find_one(
+            {constants.INDEX_ID: ObjectId(customer_lead[constants.USER_ID_FIELD])},
+            {
+                constants.INDEX_ID: 0,
+                "legal_name": 1,
+                "email_id": 1,
+                "mobile_number": 1,
+                "profile_picture_url_key": 1,
+                "profile_picture_uploaded": 1,
+            },
+        )
+        if user_details.get("profile_picture_uploaded"):
+            user_details["profile_picture_url_key"] = core_cloudfront.cloudfront_sign(
+                user_details["profile_picture_url_key"]
+            )
+        else:
+            user_details["profile_picture_url_key"] = ""
+        customer_lead["user_details"] = user_details
+
+
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={ "lead_details": customer_lead},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Investors Leads Details Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Investors Leads Details Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Investors Leads Details Service")
+    return response

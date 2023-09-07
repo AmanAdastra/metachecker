@@ -47,3 +47,10 @@ def get_investors_leads(page_number:int, per_page:int, token: str = Depends(oaut
     response = customer_leads_management_service.get_investors_leads(page_number, per_page, token)
     logger.debug("Returning From the Get Investors Leads Router")
     return response
+
+@router.get("/get-investors-leads-details")
+def get_investors_leads_details(lead_id:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Investors Leads Details Router")
+    response = customer_leads_management_service.get_investors_leads_details(lead_id, token)
+    logger.debug("Returning From the Get Investors Leads Details Router")
+    return response
