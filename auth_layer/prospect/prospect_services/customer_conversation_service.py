@@ -91,12 +91,13 @@ def get_customer_conversations(page_number: int, per_page: int, type: str, token
 
             del conversation[constants.INDEX_ID]
             response_list.append(conversation)
-
+        chat_count = customer_conversation_collection.count_documents(filter)
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={
                 constants.MESSAGE: "User Conversations Retrieved Successfully",
                 "conversations": response_list,
+                "chat_count" :  chat_count
             },
             status_code=HTTPStatus.OK,
         )
