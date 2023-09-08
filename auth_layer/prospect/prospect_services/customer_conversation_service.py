@@ -73,6 +73,22 @@ def get_customer_conversations(page_number: int, per_page: int, type: str, token
             else:
                 conversation["person_info"] = {}
             conversation[constants.ID] = str(conversation[constants.INDEX_ID])
+            property_details = db[constants.PROPERTY_DETAILS_SCHEMA].find_one(
+                {constants.INDEX_ID: ObjectId(conversation.get("property_id"))},
+                {
+                    constants.PROJECT_TITLE_FIELD: 1,
+                    constants.INDEX_ID: 0,
+                    constants.PROJECT_LOGO_FIELD: 1,
+                },
+            )
+            if property_details:
+                conversation["property_details"] = property_details
+                conversation["property_details"]["project_logo"] = cloudfront_sign(
+                    property_details.get(constants.PROJECT_LOGO_FIELD)
+                )
+            else:
+                conversation["property_details"] = {}
+
             del conversation[constants.INDEX_ID]
             response_list.append(conversation)
 
