@@ -13,9 +13,9 @@ router = APIRouter(
 )
 
 @router.get("/get-customer-conversation")
-def get_user_wallet(page_number:int, per_page:int, token: str = Depends(oauth2_scheme)):
+def get_user_wallet(page_number:int, per_page:int,type:str, token: str = Depends(oauth2_scheme)):
     logger.debug("Inside Get User Wallet Router")
-    response = customer_conversation_service.get_customer_conversations(page_number, per_page, token)
+    response = customer_conversation_service.get_customer_conversations(page_number, per_page,type, token)
     logger.debug("Returning From the Get User Wallet Router")
     return response
 
@@ -52,4 +52,11 @@ def close_customer_conversation(
     logger.debug("Inside Close Customer Conversation Router")
     response = customer_conversation_service.close_customer_conversation(conversation_id, token)
     logger.debug("Returning From the Close Customer Conversation Router")
+    return response
+
+@router.get("/get-list-of-closed-customer-conversation")
+def get_list_of_closed_customer_conversation(page_number:int, per_page:int, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get List Of Closed Customer Conversation Router")
+    response = customer_conversation_service.get_list_of_closed_customer_conversation(page_number, per_page, token)
+    logger.debug("Returning From the Get List Of Closed Customer Conversation Router")
     return response

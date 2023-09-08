@@ -15,7 +15,7 @@ from auth_layer.prospect.prospect_schemas.customer_conversation_schema import (
 )
 
 
-def get_customer_conversations(page_number: int, per_page: int, token: str):
+def get_customer_conversations(page_number: int, per_page: int, type: str, token: str):
     logger.debug("Inside Get Customer Conversations Service")
 
     try:
@@ -24,24 +24,54 @@ def get_customer_conversations(page_number: int, per_page: int, token: str):
         user_id = decoded_token.get(constants.ID)
         logger.debug("Getting Customer Conversation for User: " + str(user_id))
 
+        if type not in ["buyer", "seller", "all"]:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Invalid Type"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
         customer_conversation_collection = db[constants.CUSTOMER_CONVERSATION_SCHEMA]
 
+        filter = {}
+        if type == "buyer":
+            filter = {constants.SENDER_ID_FIELD: user_id}
+        elif type == "seller":
+            filter = {constants.RECIEVER_ID_FIELD: user_id}
+        else:
+            filter = {
+                "$or": [
+                    {constants.SENDER_ID_FIELD: user_id},
+                    {constants.RECIEVER_ID_FIELD: user_id},
+                ]
+            }
+
         customer_conversation = (
-            customer_conversation_collection.find(
-                {
-                    "$or": [
-                        {constants.SENDER_ID_FIELD: user_id , constants.STATUS_FIELD: "active"},
-                        {constants.RECIEVER_ID_FIELD: user_id, constants.STATUS_FIELD: "active"},
-                    ]
-                }
-            )
+            customer_conversation_collection.find(filter)
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
 
         response_list = []
-
         for conversation in customer_conversation:
+            if type == "buyer":
+                person_info_id = conversation.get(constants.RECIEVER_ID_FIELD)
+            elif type == "seller":
+                person_info_id = conversation.get(constants.SENDER_ID_FIELD)
+            else:
+                if conversation.get(constants.SENDER_ID_FIELD) == user_id:
+                    person_info_id = conversation.get(constants.RECIEVER_ID_FIELD)
+                else:
+                    person_info_id = conversation.get(constants.SENDER_ID_FIELD)
+            person_info = db[constants.USER_DETAILS_SCHEMA].find_one(
+                {constants.INDEX_ID: ObjectId(person_info_id)},
+                {"legal_name": 1, constants.INDEX_ID: 0},
+            )
+            if person_info:
+                conversation["person_info"] = person_info
+            else:
+                conversation["person_info"] = {}
             conversation[constants.ID] = str(conversation[constants.INDEX_ID])
             del conversation[constants.INDEX_ID]
             response_list.append(conversation)
@@ -80,7 +110,10 @@ def get_customer_conversation_by_id(conversation_id: str, token: str):
         customer_conversation_collection = db[constants.CUSTOMER_CONVERSATION_SCHEMA]
 
         customer_conversation = customer_conversation_collection.find_one(
-            {constants.INDEX_ID: ObjectId(conversation_id), constants.STATUS_FIELD: "active"}
+            {
+                constants.INDEX_ID: ObjectId(conversation_id),
+                constants.STATUS_FIELD: "active",
+            }
         )
 
         if not customer_conversation:
@@ -293,14 +326,19 @@ def close_customer_conversation(conversation_id: str, token: str):
     logger.debug("Returning From the Close Conversation Service")
     return response
 
-def get_list_of_closed_customer_conversation(page_number: int, per_page: int, token: str):
+
+def get_list_of_closed_customer_conversation(
+    page_number: int, per_page: int, token: str
+):
     logger.debug("Inside Get List of Closed Conversations Service")
 
     try:
         logger.debug("Decoding Token")
         decoded_token = token_decoder(token)
         user_id = decoded_token.get(constants.ID)
-        logger.debug("Getting List of Closed Conversations for the User: " + str(user_id))
+        logger.debug(
+            "Getting List of Closed Conversations for the User: " + str(user_id)
+        )
 
         customer_conversation_collection = db[constants.CUSTOMER_CONVERSATION_SCHEMA]
 
@@ -308,8 +346,14 @@ def get_list_of_closed_customer_conversation(page_number: int, per_page: int, to
             customer_conversation_collection.find(
                 {
                     "$or": [
-                        {constants.SENDER_ID_FIELD: user_id , constants.STATUS_FIELD: "inactive"},
-                        {constants.RECIEVER_ID_FIELD: user_id, constants.STATUS_FIELD: "inactive"},
+                        {
+                            constants.SENDER_ID_FIELD: user_id,
+                            constants.STATUS_FIELD: "inactive",
+                        },
+                        {
+                            constants.RECIEVER_ID_FIELD: user_id,
+                            constants.STATUS_FIELD: "inactive",
+                        },
                     ]
                 }
             )
