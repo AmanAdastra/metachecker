@@ -22,7 +22,7 @@ def get_customer_conversations(page_number: int, per_page: int, token: str):
         logger.debug("Decoding Token")
         decoded_token = token_decoder(token)
         user_id = decoded_token.get(constants.ID)
-        logger.debug("Getting User Wallet for User: " + str(user_id))
+        logger.debug("Getting Customer Conversation for User: " + str(user_id))
 
         customer_conversation_collection = db[constants.CUSTOMER_CONVERSATION_SCHEMA]
 
@@ -49,15 +49,59 @@ def get_customer_conversations(page_number: int, per_page: int, token: str):
         )
 
     except Exception as e:
-        logger.error(f"Error in Add Balance Service: {e}")
+        logger.error(f"Error in Get Customer Conversation Service: {e}")
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_FAILURE,
-            data={constants.MESSAGE: f"Error in Add Balance Service: {e}"},
+            data={constants.MESSAGE: f"Error in Get Customer Conversation Service: {e}"},
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Add Balance Service")
     return response
 
+def get_customer_conversation_by_id(conversation_id: str, token: str):
+    logger.debug("Inside Get Customer Conversation By Id Service")
+
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        logger.debug("Get Customer Conversation for User: " + str(user_id))
+
+        customer_conversation_collection = db[constants.CUSTOMER_CONVERSATION_SCHEMA]
+
+        customer_conversation = customer_conversation_collection.find_one(
+            {constants.INDEX_ID: ObjectId(conversation_id)}
+        )
+
+        if not customer_conversation:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Conversation Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        customer_conversation[constants.ID] = str(customer_conversation[constants.INDEX_ID])
+        del customer_conversation[constants.INDEX_ID]
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={
+                constants.MESSAGE: "User Conversations Retrieved Successfully",
+                "conversation": customer_conversation,
+            },
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get Customer Conversation Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Customer Conversation Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Customer Conversatione Service")
+    return response
 
 def add_customer_conversation(property_id: str, token: str):
     logger.debug("Inside Add Customer Conversation Service")
