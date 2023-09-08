@@ -16,3 +16,7 @@ class CustomerConversationInDB(CustomBaseSchema):
     reciever_id: str
     property_id: str
     status: str
+    messages: list = []
+
+class CustomerConversationRequest(BaseModel):
+    property_id: str

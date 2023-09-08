@@ -18,3 +18,21 @@ def get_user_wallet(page_number:int, per_page:int, token: str = Depends(oauth2_s
     response = customer_conversation_service.get_customer_conversations(page_number, per_page, token)
     logger.debug("Returning From the Get User Wallet Router")
     return response
+
+@router.post("/add-customer-conversation")
+def add_customer_conversation(property_id:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Add Customer Conversation Router")
+    response = customer_conversation_service.add_customer_conversation(property_id, token)
+    logger.debug("Returning From the Add Customer Conversation Router")
+    return response
+
+@router.post("/chat-with-customer")
+def chat_with_customer(
+    conversation_id:str,
+    message:str,
+    token: str = Depends(oauth2_scheme)
+):
+    logger.debug("Inside Add Customer Message Router")
+    response = customer_conversation_service.chat_with_customer(conversation_id, message, token)
+    logger.debug("Returning From the Add Customer Message Router")
+    return response

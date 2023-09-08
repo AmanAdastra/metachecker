@@ -53,6 +53,7 @@ def login_for_access_token(username: str, password: str, source: str = None):
     data = {
         constants.ID: user.get(constants.INDEX_ID),
         constants.EMAIL_ID_FIELD: user.get(constants.EMAIL_ID_FIELD),
+        constants.USER_TYPE_FIELD: user.get(constants.USER_TYPE_FIELD),
     }
     access_token_expires = timedelta(minutes=constants.ACCESS_TOKEN_EXPIRY_TIME)
     access_token = create_access_token(
@@ -65,6 +66,7 @@ def login_for_access_token(username: str, password: str, source: str = None):
         constants.ACCESS_TOKEN: access_token,
         constants.REFRESH_TOKEN: refresh_token,
         constants.TOKEN_TYPE_KEY: constants.TOKEN_METHOD,
+        constants.USER_TYPE_FIELD: user.get(constants.USER_TYPE_FIELD),
     }
 
 
@@ -100,6 +102,7 @@ def refresh_access_token(refresh_token: str):
         data = {
             constants.ID: user_data.get(constants.INDEX_ID),
             constants.EMAIL_ID_FIELD: user_data.get(constants.EMAIL_ID_FIELD),
+            constants.USER_TYPE_FIELD: user_data.get(constants.USER_TYPE_FIELD),
         }
         access_token_expires = timedelta(minutes=constants.ACCESS_TOKEN_EXPIRY_TIME)
 
@@ -112,6 +115,7 @@ def refresh_access_token(refresh_token: str):
             constants.ACCESS_TOKEN: new_access_token,
             constants.REFRESH_TOKEN: new_refresh_token,
             constants.TOKEN_TYPE_KEY: constants.TOKEN_METHOD,
+
         }
 
     except jwt.ExpiredSignatureError:
