@@ -43,3 +43,13 @@ def chat_with_customer(
     response = customer_conversation_service.chat_with_customer(conversation_id, message, token)
     logger.debug("Returning From the Add Customer Message Router")
     return response
+
+@router.put("/close-customer-conversation")
+def close_customer_conversation(
+    conversation_id:str,
+    token: str = Depends(oauth2_scheme)
+):
+    logger.debug("Inside Close Customer Conversation Router")
+    response = customer_conversation_service.close_customer_conversation(conversation_id, token)
+    logger.debug("Returning From the Close Customer Conversation Router")
+    return response

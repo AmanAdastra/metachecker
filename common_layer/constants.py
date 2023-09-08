@@ -83,6 +83,7 @@ CUSTOMER_LEADS_SCHEMA = "customer_leads"
 CUSTOMER_CONVERSATION_SCHEMA = "customer_conversations"
 
 # Schemas Fields
+STATUS_FIELD = "status"
 WELCOME_CARD_IMAGE_FIELD = "welcome_card_image"
 ADS_CARD_IMAGE_FIELD = "ads_card_image"
 CTA_CARD_IMAGE_FIELD = "cta_card_image"

@@ -27,7 +27,14 @@ def get_customer_conversations(page_number: int, per_page: int, token: str):
         customer_conversation_collection = db[constants.CUSTOMER_CONVERSATION_SCHEMA]
 
         customer_conversation = (
-            customer_conversation_collection.find({"$or": [{constants.SENDER_ID_FIELD: user_id}, {constants.RECIEVER_ID_FIELD: user_id}]})
+            customer_conversation_collection.find(
+                {
+                    "$or": [
+                        {constants.SENDER_ID_FIELD: user_id , constants.STATUS_FIELD: "active"},
+                        {constants.RECIEVER_ID_FIELD: user_id, constants.STATUS_FIELD: "active"},
+                    ]
+                }
+            )
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
@@ -52,11 +59,14 @@ def get_customer_conversations(page_number: int, per_page: int, token: str):
         logger.error(f"Error in Get Customer Conversation Service: {e}")
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_FAILURE,
-            data={constants.MESSAGE: f"Error in Get Customer Conversation Service: {e}"},
+            data={
+                constants.MESSAGE: f"Error in Get Customer Conversation Service: {e}"
+            },
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Add Balance Service")
     return response
+
 
 def get_customer_conversation_by_id(conversation_id: str, token: str):
     logger.debug("Inside Get Customer Conversation By Id Service")
@@ -70,18 +80,20 @@ def get_customer_conversation_by_id(conversation_id: str, token: str):
         customer_conversation_collection = db[constants.CUSTOMER_CONVERSATION_SCHEMA]
 
         customer_conversation = customer_conversation_collection.find_one(
-            {constants.INDEX_ID: ObjectId(conversation_id)}
+            {constants.INDEX_ID: ObjectId(conversation_id), constants.STATUS_FIELD: "active"}
         )
 
         if not customer_conversation:
             response = ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
-                data={constants.MESSAGE: "Conversation Not Found"},
+                data={constants.MESSAGE: "Active Conversation Not Found"},
                 status_code=HTTPStatus.NOT_FOUND,
             )
             return response
 
-        customer_conversation[constants.ID] = str(customer_conversation[constants.INDEX_ID])
+        customer_conversation[constants.ID] = str(
+            customer_conversation[constants.INDEX_ID]
+        )
         del customer_conversation[constants.INDEX_ID]
 
         response = ResponseMessage(
@@ -97,11 +109,14 @@ def get_customer_conversation_by_id(conversation_id: str, token: str):
         logger.error(f"Error in Get Customer Conversation Service: {e}")
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_FAILURE,
-            data={constants.MESSAGE: f"Error in Get Customer Conversation Service: {e}"},
+            data={
+                constants.MESSAGE: f"Error in Get Customer Conversation Service: {e}"
+            },
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Get Customer Conversatione Service")
     return response
+
 
 def add_customer_conversation(property_id: str, token: str):
     logger.debug("Inside Add Customer Conversation Service")
@@ -135,6 +150,7 @@ def add_customer_conversation(property_id: str, token: str):
                 constants.SENDER_ID_FIELD: user_id,
                 constants.RECIEVER_ID_FIELD: reciever_id,
                 constants.PROPERTY_ID_FIELD: property_id,
+                constants.STATUS_FIELD: "active",
             }
         ):
             response = ResponseMessage(
@@ -230,4 +246,49 @@ def chat_with_customer(conversation_id: str, message: str, token: str):
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Chat with Customer Service")
+    return response
+
+
+def close_customer_conversation(conversation_id: str, token: str):
+    logger.debug("Inside Close Conversation Service")
+
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        logger.debug("Closing Conversation for the User: " + str(user_id))
+
+        customer_conversation_collection = db[constants.CUSTOMER_CONVERSATION_SCHEMA]
+
+        customer_conversation = customer_conversation_collection.find_one(
+            {constants.INDEX_ID: ObjectId(conversation_id)}
+        )
+
+        if not customer_conversation:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Conversation Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        customer_conversation_collection.update_one(
+            {constants.INDEX_ID: ObjectId(conversation_id)},
+            {"$set": {"status": "inactive"}},
+        )
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={constants.MESSAGE: "Conversation Closed Successfully"},
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Close Conversation Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Close Conversation Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Close Conversation Service")
     return response
