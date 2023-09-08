@@ -292,3 +292,55 @@ def close_customer_conversation(conversation_id: str, token: str):
         )
     logger.debug("Returning From the Close Conversation Service")
     return response
+
+def get_list_of_closed_customer_conversation(page_number: int, per_page: int, token: str):
+    logger.debug("Inside Get List of Closed Conversations Service")
+
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        logger.debug("Getting List of Closed Conversations for the User: " + str(user_id))
+
+        customer_conversation_collection = db[constants.CUSTOMER_CONVERSATION_SCHEMA]
+
+        customer_conversation = (
+            customer_conversation_collection.find(
+                {
+                    "$or": [
+                        {constants.SENDER_ID_FIELD: user_id , constants.STATUS_FIELD: "inactive"},
+                        {constants.RECIEVER_ID_FIELD: user_id, constants.STATUS_FIELD: "inactive"},
+                    ]
+                }
+            )
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
+
+        response_list = []
+
+        for conversation in customer_conversation:
+            conversation[constants.ID] = str(conversation[constants.INDEX_ID])
+            del conversation[constants.INDEX_ID]
+            response_list.append(conversation)
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={
+                constants.MESSAGE: "User Conversations Retrieved Successfully",
+                "conversations": response_list,
+            },
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get List of Closed Conversations Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get List of Closed Conversations Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get List of Closed Conversations Service")
+    return response
