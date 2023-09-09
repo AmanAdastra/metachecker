@@ -17,7 +17,8 @@ from routers import (
     customer_router,
     customer_property_router,
     customer_investment_router,
-    customer_leads_management_router
+    customer_leads_management_router,
+    customer_conversation_router
 )
 from auth_layer.prospect.prospect_services import customer_property_service
 from pymongo import GEOSPHERE
@@ -68,6 +69,7 @@ app.include_router(customer_router.router)
 app.include_router(customer_property_router.router)
 app.include_router(customer_investment_router.router)
 app.include_router(customer_leads_management_router.router)
+app.include_router(customer_conversation_router.router)
 
 
 @app.on_event("startup")

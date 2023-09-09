@@ -80,8 +80,10 @@ ADS_CARD_DETAILS_SCHEMA = "ads_card_details"
 CTA_CARD_DETAILS_SCHEMA = "cta_card_details"
 CUSTOMER_TRANSACTION_SCHEMA = "customer_transactions"
 CUSTOMER_LEADS_SCHEMA = "customer_leads"
+CUSTOMER_CONVERSATION_SCHEMA = "customer_conversations"
 
 # Schemas Fields
+STATUS_FIELD = "status"
 WELCOME_CARD_IMAGE_FIELD = "welcome_card_image"
 ADS_CARD_IMAGE_FIELD = "ads_card_image"
 CTA_CARD_IMAGE_FIELD = "cta_card_image"
@@ -144,6 +146,9 @@ DOCUMENT_TITLE_FIELD = "document_title"
 BROCHURE_TITLE_FIELD = "brochure_title"
 PROPERTY_GAIN_FIELD = "property_gain"
 STATUS_FIELD = "status"
+SENDER_ID_FIELD = "sender_id"
+RECIEVER_ID_FIELD = "reciever_id"
+
 
 # Messages
 EMAIL_ALREADY_USED = "Email already used!"

@@ -54,7 +54,6 @@ def get_investors_projects(page_number: int, per_page: int, token: str):
                 {constants.PROPERTY_ID_FIELD: str(property_detail[constants.INDEX_ID])},
                 {constants.INDEX_ID: 0, "candle_data": 1},
             )
-            print(candle_data)
             property_detail[constants.ID] = str(property_detail[constants.INDEX_ID])
             property_detail[
                 constants.PROJECT_LOGO_FIELD
