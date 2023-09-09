@@ -15,7 +15,7 @@ from core_layer.aws_cloudfront import core_cloudfront
 from auth_layer.prospect.prospect_schemas.customer_leads_management_schema import (
     ResponseMessage,
     CustomerLeadsInDB,
-    LeadStatus
+    LeadStatus,
 )
 
 
@@ -187,9 +187,8 @@ def check_already_lead_exist(property_id: str, token: str = Depends(oauth2_schem
     logger.debug("Returning From the Check Already Lead Exist Service")
     return response
 
-def get_candle_of_property(
-        property_id: str, token: str = Depends(oauth2_scheme)
-):
+
+def get_candle_of_property(property_id: str, token: str = Depends(oauth2_scheme)):
     logger.debug("Inside Get Candle Of Property Service")
     try:
         decoded_token = token_decoder(token)
@@ -210,7 +209,7 @@ def get_candle_of_property(
                 status_code=HTTPStatus.NOT_FOUND,
             )
             return response
-        
+
         candle_data[constants.ID] = str(candle_data[constants.INDEX_ID])
         del candle_data[constants.INDEX_ID]
 
@@ -230,32 +229,41 @@ def get_candle_of_property(
     logger.debug("Returning From the Get Candle Of Property Service")
     return response
 
-def get_investors_leads(page_number:int,per_page:int,token:str):
+
+def get_investors_leads(page_number: int, per_page: int, token: str):
     logger.debug("Inside Get Investors Leads Service")
     try:
         decoded_token = token_decoder(token)
         logger.debug("Decoded Token : " + str(decoded_token))
         user_id = decoded_token.get(constants.ID)
-        logger.debug("User Id : " + str(user_id))    
+        logger.debug("User Id : " + str(user_id))
 
         customer_leads_collection = db[constants.CUSTOMER_LEADS_SCHEMA]
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         """
             Name, email, phone, property name, property address, property logo, property candle, property change, property change percent
         """
-        customer_leads = customer_leads_collection.find(
-            {constants.LISTED_BY_USER_ID_FIELD: (user_id)},
-            {
-                constants.INDEX_ID: 1,
-                constants.USER_ID_FIELD: 1,
-                constants.PROPERTY_ID_FIELD: 1,
-                "status": 1,
-            },
-        ).skip((page_number - 1) * per_page).limit(per_page)
+        customer_leads = (
+            customer_leads_collection.find(
+                {constants.LISTED_BY_USER_ID_FIELD: (user_id)},
+                {
+                    constants.INDEX_ID: 1,
+                    constants.USER_ID_FIELD: 1,
+                    constants.PROPERTY_ID_FIELD: 1,
+                    "status": 1,
+                },
+            )
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
         response_list = []
         for customer_lead in customer_leads:
             property_details = property_details_collection.find_one(
-                {constants.INDEX_ID: ObjectId(customer_lead[constants.PROPERTY_ID_FIELD])},
+                {
+                    constants.INDEX_ID: ObjectId(
+                        customer_lead[constants.PROPERTY_ID_FIELD]
+                    )
+                },
                 {
                     constants.INDEX_ID: 1,
                     constants.PROJECT_TITLE_FIELD: 1,
@@ -273,16 +281,21 @@ def get_investors_leads(page_number:int,per_page:int,token:str):
             customer_lead[constants.ID] = str(customer_lead[constants.INDEX_ID])
             del customer_lead[constants.INDEX_ID]
             customer_lead["property_details"] = property_details
-            response_list.append(customer_lead)    
+            response_list.append(customer_lead)
         document_count = customer_leads_collection.count_documents(
             {constants.LISTED_BY_USER_ID_FIELD: (user_id)}
         )
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={ "leads": response_list, "total_count": document_count, "page_number": page_number, "per_page": per_page },
+            data={
+                "leads": response_list,
+                "total_count": document_count,
+                "page_number": page_number,
+                "per_page": per_page,
+            },
             status_code=HTTPStatus.OK,
         )
-        
+
     except Exception as e:
         logger.error(f"Error in Get Investors Leads Service: {e}")
         response = ResponseMessage(
@@ -293,10 +306,8 @@ def get_investors_leads(page_number:int,per_page:int,token:str):
     logger.debug("Returning From the Get Investors Leads Service")
     return response
 
-def get_investors_leads_details(
-        lead_id: str,
-        token: str = Depends(oauth2_scheme)
-):
+
+def get_investors_leads_details(lead_id: str, token: str = Depends(oauth2_scheme)):
     logger.debug("Inside Get Investors Leads Details Service")
     try:
         decoded_token = token_decoder(token)
@@ -323,7 +334,7 @@ def get_investors_leads_details(
                 status_code=HTTPStatus.NOT_FOUND,
             )
             return response
-        
+
         customer_lead[constants.ID] = str(customer_lead[constants.INDEX_ID])
         del customer_lead[constants.INDEX_ID]
 
@@ -348,26 +359,25 @@ def get_investors_leads_details(
             user_details["profile_picture_url_key"] = ""
         customer_lead["user_details"] = user_details
 
-
-
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={ "lead_details": customer_lead},
+            data={"lead_details": customer_lead},
             status_code=HTTPStatus.OK,
         )
     except Exception as e:
         logger.error(f"Error in Get Investors Leads Details Service: {e}")
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_FAILURE,
-            data={constants.MESSAGE: f"Error in Get Investors Leads Details Service: {e}"},
+            data={
+                constants.MESSAGE: f"Error in Get Investors Leads Details Service: {e}"
+            },
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Get Investors Leads Details Service")
     return response
 
-def get_dashboard_details(
-        token: str = Depends(oauth2_scheme)
-):
+
+def get_dashboard_details(token: str = Depends(oauth2_scheme)):
     logger.debug("Inside Get Dashboard Details Service")
     try:
         decoded_token = token_decoder(token)
@@ -378,28 +388,71 @@ def get_dashboard_details(
         customer_leads_collection = db[constants.CUSTOMER_LEADS_SCHEMA]
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
 
+        no_of_views = property_details_collection.aggregate(
+            [
+                {"$match": {constants.LISTED_BY_USER_ID_FIELD: (user_id)}},
+                {"$group": {"_id": None, "view_count": {"$sum": "$view_count"}}},
+            ]
+        )
+        no_of_views_list = (list(no_of_views))
+        no_of_views = no_of_views_list[0]["view_count"] if no_of_views_list else 0
+
+        engagement = property_details_collection.count_documents(
+            {constants.LISTED_BY_USER_ID_FIELD: (user_id), "status": "sold"}
+        )
+        engagement_rate = (engagement / no_of_views if no_of_views > 0 else 0) * 100
+
         total_leads = customer_leads_collection.count_documents(
             {constants.LISTED_BY_USER_ID_FIELD: (user_id)}
         )
 
-        no_of_views = customer_leads_collection.aggregate(
-            [
-                { "$match": { constants.LISTED_BY_USER_ID_FIELD: (user_id) } },
-                { "$group": { "_id": None, "total": { "$sum": "$view_count" } } }
-            ]
+        leads_completed = customer_leads_collection.count_documents(
+            {constants.LISTED_BY_USER_ID_FIELD: (user_id), "status": LeadStatus.MEETING_COMPLETED.value}
         )
 
-        engagement_rate = property_details_collection.find({
-            constants.LISTED_BY_USER_ID_FIELD: (user_id), "status": "sold"
-        })
+        leads_reamining = total_leads - leads_completed
 
+        meeting_scheduled = customer_leads_collection.count_documents(
+            {
+                constants.LISTED_BY_USER_ID_FIELD: (user_id),
+                "status": LeadStatus.MEETING_SCHEDULED.value,
+            }
+        )
 
+        meeting_completed = customer_leads_collection.count_documents(
+            {
+                constants.LISTED_BY_USER_ID_FIELD: (user_id),
+                "status": LeadStatus.MEETING_COMPLETED.value,
+            }
+        )
 
-        # Reposne data -> no_of_views, engagement_rate, total_leads, leads_completed, leads_reamining, meeting_scheduled, meeting_completed, total_meetings 
+        # Count of total property
+        total_property = property_details_collection.count_documents(
+            {constants.LISTED_BY_USER_ID_FIELD: (user_id)}
+        )
+
+        # Count of total property sold
+        total_property_sold = property_details_collection.count_documents(
+            {constants.LISTED_BY_USER_ID_FIELD: (user_id), "status": "sold"}
+        )
+
+        progress = (total_property_sold / total_property) * 100 if total_property > 0 else 0
+
+        total_meetings = meeting_scheduled + meeting_completed
 
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={ "total_leads": total_leads},
+            data={
+                "no_of_views": no_of_views,
+                "engagement_rate": engagement_rate,
+                "total_leads": total_leads,
+                "leads_completed": leads_completed,
+                "leads_reamining": leads_reamining,
+                "meeting_scheduled": meeting_scheduled,
+                "meeting_completed": meeting_completed,
+                "total_meetings": total_meetings,
+                "progress": progress,
+            },
             status_code=HTTPStatus.OK,
         )
 
@@ -414,11 +467,8 @@ def get_dashboard_details(
     logger.debug("Returning From the Get Dashboard Details Service")
     return response
 
-def change_lead_status(
-        lead_id: str,
-        status: str,
-        token: str = Depends(oauth2_scheme)
-):
+
+def change_lead_status(lead_id: str, status: str, token: str = Depends(oauth2_scheme)):
     logger.debug("Inside Change Lead Status Service")
     try:
         decoded_token = token_decoder(token)
@@ -426,10 +476,13 @@ def change_lead_status(
         user_id = decoded_token.get(constants.ID)
         logger.debug("User Id : " + str(user_id))
 
-        if status not in LeadStatus.__members__:
+        if status not in [status.value for status in LeadStatus]:
             response = ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
-                data={"message": "Invalid Status Please enter valid status : " + str(LeadStatus.__members__.keys())},
+                data={
+                    "message": "Invalid Status Please enter valid status : "
+                    + str([status.value for status in LeadStatus])
+                },
                 status_code=HTTPStatus.BAD_REQUEST,
             )
             return response
@@ -453,15 +506,14 @@ def change_lead_status(
                 status_code=HTTPStatus.NOT_FOUND,
             )
             return response
-        
+
         customer_leads_collection.update_one(
-            {constants.INDEX_ID: ObjectId(lead_id)},
-            {"$set": {"status": status}}
+            {constants.INDEX_ID: ObjectId(lead_id)}, {"$set": {"status": status}}
         )
 
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={ "message": "Lead Status Updated Successfully"},
+            data={"message": "Lead Status Updated Successfully"},
             status_code=HTTPStatus.OK,
         )
     except Exception as e:

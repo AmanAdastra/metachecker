@@ -2140,10 +2140,10 @@ def change_property_status(
         token = token_decoder(token)
         user_id = token.get(constants.ID)
 
-        if status not in PropertyStatus.__members__:
+        if status not in [ property_status.value for property_status in PropertyStatus]:
             response = admin_property_management_schemas.ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
-                data={constants.MESSAGE: f"Invalid Status"},
+                data={constants.MESSAGE: f"Invalid Status It should be one of :" + str([ property_status.value for property_status in PropertyStatus])},
                 status_code=HTTPStatus.BAD_REQUEST,
             )
             return response
