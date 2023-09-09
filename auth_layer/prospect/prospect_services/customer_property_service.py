@@ -36,7 +36,8 @@ from common_layer.common_schemas.property_schema import (
     CommercialPropertySchema,
     FarmPropertyRequestSchema,
     FarmPropertySchema,
-    PropertyStatus
+    PropertyStatus,
+    PropertyAnalyticsSchema,
 )
 
 
@@ -2010,9 +2011,13 @@ def get_top_gainers():
         region_details_collection = db[constants.REGION_DETAILS_SCHEMA]
 
         region_ids = region_details_collection.find(
-            {constants.IS_ACTIVE_FIELD: True}, {constants.INDEX_ID: 1, constants.TITLE_FIELD: 1}
+            {constants.IS_ACTIVE_FIELD: True},
+            {constants.INDEX_ID: 1, constants.TITLE_FIELD: 1},
         )
-        region_id_list = [(region_id[constants.INDEX_ID],region_id[constants.TITLE_FIELD]) for region_id in region_ids]
+        region_id_list = [
+            (region_id[constants.INDEX_ID], region_id[constants.TITLE_FIELD])
+            for region_id in region_ids
+        ]
 
         top_gainers_by_region_dict = {}
         for region in region_id_list:
@@ -2080,14 +2085,32 @@ def get_top_gainers():
     logger.debug("Returning From the Get Top Gainers Service")
     return response
 
-def get_similar_properties(region_id:str, page_number:int, per_page:int):
+
+def get_similar_properties(region_id: str, page_number: int, per_page: int):
     logger.debug("Inside Get Similar Properties Service")
     try:
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
-        property_details = property_details_collection.find(
-            {constants.REGION_ID_FIELD:region_id}, {constants.INDEX_ID: 1, constants.PROJECT_TITLE_FIELD: 1, constants.ADDRESS_FIELD: 1, constants.PRICE_FIELD: 1, constants.IMAGES_FIELD: 1, constants.LISTED_BY_FIELD: 1, constants.CREATED_AT_FIELD: 1, constants.LOCATION_FIELD: 1, constants.DESCRIPTION_FIELD: 1}
-        ).skip((page_number - 1) * per_page).limit(per_page)
-        document_count = property_details_collection.count_documents({constants.REGION_ID_FIELD:region_id})
+        property_details = (
+            property_details_collection.find(
+                {constants.REGION_ID_FIELD: region_id},
+                {
+                    constants.INDEX_ID: 1,
+                    constants.PROJECT_TITLE_FIELD: 1,
+                    constants.ADDRESS_FIELD: 1,
+                    constants.PRICE_FIELD: 1,
+                    constants.IMAGES_FIELD: 1,
+                    constants.LISTED_BY_FIELD: 1,
+                    constants.CREATED_AT_FIELD: 1,
+                    constants.LOCATION_FIELD: 1,
+                    constants.DESCRIPTION_FIELD: 1,
+                },
+            )
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
+        document_count = property_details_collection.count_documents(
+            {constants.REGION_ID_FIELD: region_id}
+        )
         response_list = []
         for property in property_details:
             response_list.append(
@@ -2096,9 +2119,7 @@ def get_similar_properties(region_id:str, page_number:int, per_page:int):
                     constants.PROJECT_TITLE_FIELD: property[
                         constants.PROJECT_TITLE_FIELD
                     ],
-                    constants.DESCRIPTION_FIELD: property[
-                        constants.DESCRIPTION_FIELD
-                    ],
+                    constants.DESCRIPTION_FIELD: property[constants.DESCRIPTION_FIELD],
                     constants.ADDRESS_FIELD: property[constants.ADDRESS_FIELD],
                     constants.PRICE_FIELD: property[constants.PRICE_FIELD],
                     constants.IMAGES_FIELD: [
@@ -2130,6 +2151,7 @@ def get_similar_properties(region_id:str, page_number:int, per_page:int):
     logger.debug("Returning From the Get Similar Properties Service")
     return response
 
+
 def change_property_status(
     property_id: str,
     status: str,
@@ -2140,10 +2162,13 @@ def change_property_status(
         token = token_decoder(token)
         user_id = token.get(constants.ID)
 
-        if status not in [ property_status.value for property_status in PropertyStatus]:
+        if status not in [property_status.value for property_status in PropertyStatus]:
             response = admin_property_management_schemas.ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
-                data={constants.MESSAGE: f"Invalid Status It should be one of :" + str([ property_status.value for property_status in PropertyStatus])},
+                data={
+                    constants.MESSAGE: f"Invalid Status It should be one of :"
+                    + str([property_status.value for property_status in PropertyStatus])
+                },
                 status_code=HTTPStatus.BAD_REQUEST,
             )
             return response
@@ -2173,9 +2198,7 @@ def change_property_status(
             {"$set": {constants.STATUS_FIELD: status}},
         )
 
-        logger.debug(
-            f"Property Status Changed Successfully at Index {property_id}"
-        )
+        logger.debug(f"Property Status Changed Successfully at Index {property_id}")
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={constants.MESSAGE: "Property Status Changed Successfully"},
@@ -2189,4 +2212,61 @@ def change_property_status(
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Change Property Status Service")
+    return response
+
+
+def add_todays_property_count():
+    logger.debug("Inside Add Todays Property Count Service")
+    try:
+        customer_property_analytics_collection = db[
+            constants.CUSTOMER_PROPERTY_ANALYTICS_SCHEMA
+        ]
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        property_list = list(
+            property_details_collection.find(
+                {constants.STATUS_FIELD: PropertyStatus.ACTIVE.value},
+                {constants.INDEX_ID: 1, constants.VIEW_COUNT_FIELD: 1},
+            )
+        )
+        for property in property_list:
+            previouse_count = customer_property_analytics_collection.find_one(
+                {
+                    constants.PROPERTY_ID_FIELD: str(property.get(constants.INDEX_ID)),
+                }
+            )
+            print(previouse_count)
+            if previouse_count is None:
+                analytics_index = PropertyAnalyticsSchema(
+                    property_id=str(property.get(constants.INDEX_ID)),
+                    view_count=property.get(constants.VIEW_COUNT_FIELD),
+                )
+            else:
+                previous_count = previouse_count.get(constants.VIEW_COUNT_FIELD)
+                todays_count = property.get(constants.VIEW_COUNT_FIELD) - previous_count
+                analytics_index = PropertyAnalyticsSchema(
+                    property_id=str(property.get(constants.INDEX_ID)),
+                    view_count=todays_count,
+                )
+            customer_property_analytics_collection.insert_one(
+                jsonable_encoder(analytics_index)
+            )
+
+        logger.debug(f"Todays Property Count Added Successfully")
+
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={constants.MESSAGE: "Todays Property Count Added Successfully"},
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Add Todays Property Count Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Add Todays Property Count Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Add Todays Property Count Service")
     return response

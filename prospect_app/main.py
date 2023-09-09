@@ -2,7 +2,8 @@ import os
 import sys
 import json
 import random
-
+import schedule
+import time
 sys.path.append(os.path.realpath(".."))
 from datetime import timedelta
 from fastapi import FastAPI
@@ -10,6 +11,7 @@ from starlette.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware import Middleware
 from fastapi.encoders import jsonable_encoder
+from fastapi_utils.tasks import repeat_every
 from datetime import datetime
 from logging_module import logger
 from fastapi.staticfiles import StaticFiles
@@ -71,6 +73,13 @@ app.include_router(customer_investment_router.router)
 app.include_router(customer_leads_management_router.router)
 app.include_router(customer_conversation_router.router)
 
+
+schedule.every().day.at("00:01").do(customer_property_service.add_todays_property_count)
+
+@app.on_event("startup")
+@repeat_every(seconds=60)
+async def auto_update_property_count()->None:
+        schedule.run_pending()
 
 @app.on_event("startup")
 def add_seed_users():

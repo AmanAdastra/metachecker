@@ -107,6 +107,11 @@ class PropertyStatus(str, Enum):
     INACTIVE = "inactive"
     SOLD = "sold"
 
+class PropertyAnalyticsSchema(BaseModel):
+    property_id: str
+    view_count: int
+    timestamp: float = time.time()
+
 
 class LocationSchema(BaseModel):
     latitude: float
