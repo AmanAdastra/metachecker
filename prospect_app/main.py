@@ -74,7 +74,7 @@ app.include_router(customer_leads_management_router.router)
 app.include_router(customer_conversation_router.router)
 
 
-schedule.every().day.at("17:43").do(customer_property_service.add_todays_property_count)
+schedule.every().day.at("00:05").do(customer_property_service.add_todays_property_count)
 
 @app.on_event("startup")
 @repeat_every(seconds=60)
