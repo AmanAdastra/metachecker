@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from database import db
 from bson import ObjectId
 from common_layer import constants
@@ -38,6 +39,7 @@ from common_layer.common_schemas.property_schema import (
     FarmPropertySchema,
     PropertyStatus,
     PropertyAnalyticsSchema,
+    PropertyDailyViewCountSchema,
 )
 
 
@@ -2221,14 +2223,36 @@ def add_todays_property_count():
         customer_property_analytics_collection = db[
             constants.CUSTOMER_PROPERTY_ANALYTICS_SCHEMA
         ]
+        customer_daily_property_analytics_collection = db[
+            constants.CUSTOMER_DAILY_PROPERTY_ANALYTICS_SCHEMA
+        ]
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         property_list = list(
             property_details_collection.find(
                 {constants.STATUS_FIELD: PropertyStatus.ACTIVE.value},
-                {constants.INDEX_ID: 1, constants.VIEW_COUNT_FIELD: 1},
+                {
+                    constants.INDEX_ID: 1,
+                    constants.VIEW_COUNT_FIELD: 1,
+                    constants.LISTED_BY_USER_ID_FIELD: 1,
+                },
             )
         )
         for property in property_list:
+            datetime_obj = datetime.utcfromtimestamp(time.time())
+
+            formatted_date = datetime_obj.strftime("%Y-%m-%d")
+            customer_daily_property_analytics_collection.insert_one(
+                jsonable_encoder(
+                    PropertyDailyViewCountSchema(
+                        user_id=str(property.get(constants.LISTED_BY_USER_ID_FIELD)),
+                        property_id=str(property.get(constants.INDEX_ID)),
+                        view_count=property.get(constants.VIEW_COUNT_FIELD),
+                        timestamp=time.time(),
+                        data=formatted_date,
+                    )
+                )
+            )
+
             previouse_count = customer_property_analytics_collection.find_one(
                 {
                     constants.PROPERTY_ID_FIELD: str(property.get(constants.INDEX_ID)),
@@ -2237,15 +2261,19 @@ def add_todays_property_count():
             print(previouse_count)
             if previouse_count is None:
                 analytics_index = PropertyAnalyticsSchema(
+                    user_id=str(property.get(constants.LISTED_BY_USER_ID_FIELD)),
                     property_id=str(property.get(constants.INDEX_ID)),
                     view_count=property.get(constants.VIEW_COUNT_FIELD),
+                    timestamp=time.time(),
                 )
             else:
                 previous_count = previouse_count.get(constants.VIEW_COUNT_FIELD)
                 todays_count = property.get(constants.VIEW_COUNT_FIELD) - previous_count
                 analytics_index = PropertyAnalyticsSchema(
+                    user_id=str(property.get(constants.LISTED_BY_USER_ID_FIELD)),
                     property_id=str(property.get(constants.INDEX_ID)),
                     view_count=todays_count,
+                    timestamp=time.time(),
                 )
             customer_property_analytics_collection.insert_one(
                 jsonable_encoder(analytics_index)

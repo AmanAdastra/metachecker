@@ -394,7 +394,7 @@ def get_dashboard_details(token: str = Depends(oauth2_scheme)):
                 {"$group": {"_id": None, "view_count": {"$sum": "$view_count"}}},
             ]
         )
-        no_of_views_list = (list(no_of_views))
+        no_of_views_list = list(no_of_views)
         no_of_views = no_of_views_list[0]["view_count"] if no_of_views_list else 0
 
         engagement = property_details_collection.count_documents(
@@ -407,7 +407,10 @@ def get_dashboard_details(token: str = Depends(oauth2_scheme)):
         )
 
         leads_completed = customer_leads_collection.count_documents(
-            {constants.LISTED_BY_USER_ID_FIELD: (user_id), "status": LeadStatus.MEETING_COMPLETED.value}
+            {
+                constants.LISTED_BY_USER_ID_FIELD: (user_id),
+                "status": LeadStatus.MEETING_COMPLETED.value,
+            }
         )
 
         leads_reamining = total_leads - leads_completed
@@ -436,7 +439,9 @@ def get_dashboard_details(token: str = Depends(oauth2_scheme)):
             {constants.LISTED_BY_USER_ID_FIELD: (user_id), "status": "sold"}
         )
 
-        progress = (total_property_sold / total_property) * 100 if total_property > 0 else 0
+        progress = (
+            (total_property_sold / total_property) * 100 if total_property > 0 else 0
+        )
 
         total_meetings = meeting_scheduled + meeting_completed
 
@@ -524,4 +529,89 @@ def change_lead_status(lead_id: str, status: str, token: str = Depends(oauth2_sc
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Change Lead Status Service")
+    return response
+
+
+def get_property_analytics(property_id: str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Property Analytics Service")
+    try:
+        customer_property_analytics_collection = db[
+            constants.CUSTOMER_PROPERTY_ANALYTICS_SCHEMA
+        ]
+
+        customer_property_analytics = customer_property_analytics_collection.find(
+            {constants.PROPERTY_ID_FIELD: property_id}, {constants.PROPERTY_ID_FIELD: 0}
+        )
+
+        if not customer_property_analytics:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={"message": "Analytics Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        response_dict = {}
+        for analytics in customer_property_analytics:
+            print(analytics)
+            response_dict[analytics["timestamp"]] = analytics["view_count"]
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"analytics": response_dict},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Property Analytics Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Property Analytics Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Property Analytics Service")
+    return response
+
+
+def get_dashboard_analytics(token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get All Property Views From Analytics Service")
+    try:
+        decoded_token = token_decoder(token)
+        logger.debug("Decoded Token : " + str(decoded_token))
+        user_id = decoded_token.get(constants.ID)
+
+        customer_daily_count = db[constants.CUSTOMER_DAILY_PROPERTY_ANALYTICS_SCHEMA]
+        pipeline = [
+            {"$match": {"user_id": user_id}},  # Replace with the desired user_id
+            {"$group": {"_id": "$data", "view_count": {"$sum": "$view_count"}}},
+        ]
+        # Aggregate the view count by date filed
+        customer_property_analytics = customer_daily_count.aggregate(pipeline)
+
+        if not customer_property_analytics:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={"message": "Analytics Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        response_dict = {}
+        for analytics in customer_property_analytics:
+            response_dict[analytics[constants.INDEX_ID]] = analytics[constants.VIEW_COUNT_FIELD]
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"analytics": response_dict},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get All Property Views From Analytics Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get All Property Views From Analytics Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get All Property Views From Analytics Service")
     return response

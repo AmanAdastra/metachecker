@@ -68,3 +68,17 @@ def change_lead_status(lead_id:str, status:str, token: str = Depends(oauth2_sche
     response = customer_leads_management_service.change_lead_status(lead_id, status, token)
     logger.debug("Returning From the Change Lead Status Router")
     return response
+
+@router.get("/get-property-analytics")
+def get_property_analytics(property_id:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Property Analytics Router")
+    response = customer_leads_management_service.get_property_analytics(property_id, token)
+    logger.debug("Returning From the Get Property Analytics Router")
+    return response
+
+@router.get("/get-dashboard-analytics")
+def get_dashboard_analytics(token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Dashboard Analytics Router")
+    response = customer_leads_management_service.get_dashboard_analytics(token)
+    logger.debug("Returning From the Get Dashboard Analytics Router")
+    return response

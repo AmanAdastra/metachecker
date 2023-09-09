@@ -108,10 +108,17 @@ class PropertyStatus(str, Enum):
     SOLD = "sold"
 
 class PropertyAnalyticsSchema(BaseModel):
+    user_id: str
     property_id: str
     view_count: int
     timestamp: float = time.time()
 
+class PropertyDailyViewCountSchema(BaseModel):
+    property_id: str
+    view_count: int
+    user_id: str
+    data: str
+    timestamp: float = time.time()
 
 class LocationSchema(BaseModel):
     latitude: float

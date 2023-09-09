@@ -82,6 +82,7 @@ CUSTOMER_TRANSACTION_SCHEMA = "customer_transactions"
 CUSTOMER_LEADS_SCHEMA = "customer_leads"
 CUSTOMER_CONVERSATION_SCHEMA = "customer_conversations"
 CUSTOMER_PROPERTY_ANALYTICS_SCHEMA = "customer_property_analytics"
+CUSTOMER_DAILY_PROPERTY_ANALYTICS_SCHEMA = "customer_daily_property_analytics"
 
 # Schemas Fields
 STATUS_FIELD = "status"
