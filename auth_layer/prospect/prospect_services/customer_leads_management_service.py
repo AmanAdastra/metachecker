@@ -15,6 +15,7 @@ from core_layer.aws_cloudfront import core_cloudfront
 from auth_layer.prospect.prospect_schemas.customer_leads_management_schema import (
     ResponseMessage,
     CustomerLeadsInDB,
+    LeadStatus
 )
 
 
@@ -376,10 +377,26 @@ def get_dashboard_details(
         logger.debug("User Id : " + str(user_id))
 
         customer_leads_collection = db[constants.CUSTOMER_LEADS_SCHEMA]
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
 
         total_leads = customer_leads_collection.count_documents(
-            {constants.LISTED_BY_USER_ID_FIELD: (user_id), "status": "active"}
+            {constants.LISTED_BY_USER_ID_FIELD: (user_id)}
         )
+
+        no_of_views = customer_leads_collection.aggregate(
+            [
+                { "$match": { constants.LISTED_BY_USER_ID_FIELD: (user_id) } },
+                { "$group": { "_id": None, "total": { "$sum": "$view_count" } } }
+            ]
+        )
+
+        engagement_rate = property_details_collection.find({
+            constants.LISTED_BY_USER_ID_FIELD: (user_id), "status": "sold"
+        })
+
+
+
+        # Reposne data -> no_of_views, engagement_rate, total_leads, leads_completed, leads_reamining, meeting_scheduled, meeting_completed, total_meetings 
 
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
@@ -396,4 +413,64 @@ def get_dashboard_details(
         )
 
     logger.debug("Returning From the Get Dashboard Details Service")
+    return response
+
+def change_lead_status(
+        lead_id: str,
+        status: str,
+        token: str = Depends(oauth2_scheme)
+):
+    logger.debug("Inside Change Lead Status Service")
+    try:
+        decoded_token = token_decoder(token)
+        logger.debug("Decoded Token : " + str(decoded_token))
+        user_id = decoded_token.get(constants.ID)
+        logger.debug("User Id : " + str(user_id))
+
+        if status not in LeadStatus.__members__:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={"message": "Invalid Status Please enter valid status : " + str(LeadStatus.__members__.keys())},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+
+        customer_leads_collection = db[constants.CUSTOMER_LEADS_SCHEMA]
+
+        customer_lead = customer_leads_collection.find_one(
+            {constants.INDEX_ID: ObjectId(lead_id)},
+            {
+                constants.INDEX_ID: 1,
+                constants.USER_ID_FIELD: 1,
+                constants.PROPERTY_ID_FIELD: 1,
+                "status": 1,
+            },
+        )
+
+        if not customer_lead:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={"message": "Lead Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        
+        customer_leads_collection.update_one(
+            {constants.INDEX_ID: ObjectId(lead_id)},
+            {"$set": {"status": status}}
+        )
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={ "message": "Lead Status Updated Successfully"},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Change Lead Status Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Change Lead Status Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Change Lead Status Service")
     return response

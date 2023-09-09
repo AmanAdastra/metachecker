@@ -36,6 +36,7 @@ from common_layer.common_schemas.property_schema import (
     CommercialPropertySchema,
     FarmPropertyRequestSchema,
     FarmPropertySchema,
+    PropertyStatus
 )
 
 
@@ -2127,4 +2128,65 @@ def get_similar_properties(region_id:str, page_number:int, per_page:int):
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Get Similar Properties Service")
+    return response
+
+def change_property_status(
+    property_id: str,
+    status: str,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside Change Property Status Service")
+    try:
+        token = token_decoder(token)
+        user_id = token.get(constants.ID)
+
+        if status not in PropertyStatus.__members__:
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: f"Invalid Status"},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        property_details = property_details_collection.find_one(
+            {constants.INDEX_ID: ObjectId(property_id)}
+        )
+        if property_details is None:
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: f"Property doesn't Found!"},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+
+        if property_details.get(constants.LISTED_BY_USER_ID_FIELD) != user_id:
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: f"Property doesn't belongs to the user"},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+
+        property_details_collection.update_one(
+            {constants.INDEX_ID: ObjectId(property_id)},
+            {"$set": {constants.STATUS_FIELD: status}},
+        )
+
+        logger.debug(
+            f"Property Status Changed Successfully at Index {property_id}"
+        )
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={constants.MESSAGE: "Property Status Changed Successfully"},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Change Property Status Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Change Property Status Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Change Property Status Service")
     return response

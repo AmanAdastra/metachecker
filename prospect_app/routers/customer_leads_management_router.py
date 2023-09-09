@@ -61,3 +61,10 @@ def get_dashboard_details(token: str = Depends(oauth2_scheme)):
     response = customer_leads_management_service.get_dashboard_details(token)
     logger.debug("Returning From the Get Dashboard Details Router")
     return response
+
+@router.put("/change-lead-status")
+def change_lead_status(lead_id:str, status:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Change Lead Status Router")
+    response = customer_leads_management_service.change_lead_status(lead_id, status, token)
+    logger.debug("Returning From the Change Lead Status Router")
+    return response

@@ -204,3 +204,10 @@ def get_similar_properties(region_id:str, page_number:int, per_page:int):
     response = customer_property_service.get_similar_properties(region_id=region_id, page_number=page_number, per_page=per_page)
     logger.debug("Returning From the Get Similar Properties Router")
     return response
+
+@router.put("/change-property-status")
+def change_property_status(property_id:str, status:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Change Property Status Router")
+    response = customer_property_service.change_property_status(property_id=property_id, status=status, token=token)
+    logger.debug("Returning From the Change Property Status Router")
+    return response

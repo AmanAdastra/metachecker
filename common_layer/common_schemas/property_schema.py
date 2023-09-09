@@ -102,6 +102,10 @@ Residential Property Request Schema:
     roi_percentage: float
 
 """
+class PropertyStatus(str, Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    SOLD = "sold"
 
 
 class LocationSchema(BaseModel):
@@ -194,6 +198,7 @@ class CustomBaseSchema(BaseModel):
 
 
 class PropertySchema(CustomBaseSchema):
+    status: str = "active"
     listing_type: str
     listed_by: str
     listed_by_user_id: str
