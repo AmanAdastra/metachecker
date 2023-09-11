@@ -79,7 +79,7 @@ def valid_content_length(
 def fcm_push_notification(user_id, title, description, module, seconds=0, extra={}):
     device_collection = db[constants.DEVICE_DETAILS_SCHEMA]
     device_record = device_collection.find_one(
-        {constants.USER_ID_FIELD: ObjectId(user_id)}
+        {constants.USER_ID_FIELD: (user_id)}
     )
     datetime_now = datetime.now()
     scheduled_time = datetime_now + relativedelta.relativedelta(seconds=seconds)
