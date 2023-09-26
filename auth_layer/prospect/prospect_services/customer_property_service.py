@@ -1226,9 +1226,9 @@ def get_list_of_top_properties(
             )
             return response
 
-        recommended_properties = region.get(constants.RECOMMENDED_PROPERTIES_FIELD)
+        top_properties = region.get(constants.TOP_PROPERTIES_FIELD)
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
-        filter_by = [ObjectId(property_id) for property_id in recommended_properties]
+        filter_by = [ObjectId(property_id) for property_id in top_properties]
         properties = list(
             property_details_collection.find(
                 {constants.INDEX_ID: {"$in": filter_by}},
