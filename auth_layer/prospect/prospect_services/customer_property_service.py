@@ -1154,7 +1154,10 @@ def get_list_of_most_viewed_properties(per_page: int, page_number: int):
                     ],
                     constants.ADDRESS_FIELD: property[constants.ADDRESS_FIELD],
                     constants.PRICE_FIELD: property[constants.PRICE_FIELD],
-                    constants.IMAGES_FIELD: property[constants.IMAGES_FIELD],
+                    constants.IMAGES_FIELD: [
+                        core_cloudfront.cloudfront_sign(image_key)
+                        for image_key in property[constants.IMAGES_FIELD][:1]
+                    ],
                     constants.LISTED_BY_FIELD: property[constants.LISTED_BY_FIELD],
                     constants.CREATED_AT_FIELD: property[constants.CREATED_AT_FIELD],
                     constants.VIEW_COUNT_FIELD: property[constants.VIEW_COUNT_FIELD],
