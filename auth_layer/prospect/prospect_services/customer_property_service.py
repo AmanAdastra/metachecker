@@ -1855,7 +1855,7 @@ def get_property_list(
                     constants.LOCATION_FIELD: 1,
                 },
             )
-            .sort([(key, value) for key, value in sort_dict.items()])
+            .sort([(key, value) for key, value in sort_dict.items()] if sort_dict else [(constants.CREATED_AT_FIELD,-1)])
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
