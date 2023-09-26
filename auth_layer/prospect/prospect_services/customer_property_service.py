@@ -8,6 +8,7 @@ from admin_app.logging_module import logger
 from fastapi.encoders import jsonable_encoder
 from fastapi import Depends, UploadFile
 from typing import Annotated
+from bson.son import SON
 from common_layer.common_services.utils import (
     token_decoder,
     upload_image,
@@ -1290,32 +1291,21 @@ def get_nearby_properties(
     logger.debug("Inside Get List Of Nearby Properties Service")
     try:
         location = {"latitude": latitude, "longitude": longitude}
-        region_id = get_nearest_region_id(location)
-        if region_id is None:
-            response = admin_property_management_schemas.ResponseMessage(
-                type=constants.HTTP_RESPONSE_FAILURE,
-                data={constants.MESSAGE: f"Region doesn't Found!"},
-                status_code=HTTPStatus.BAD_REQUEST,
-            )
-            return response
-        region_id = region_id[0].get(constants.INDEX_ID)
-        region_collection = db[constants.REGION_DETAILS_SCHEMA]
-        region = region_collection.find_one({constants.INDEX_ID: region_id})
 
-        if region is None:
-            response = admin_property_management_schemas.ResponseMessage(
-                type=constants.HTTP_RESPONSE_FAILURE,
-                data={constants.MESSAGE: f"Region doesn't Found!"},
-                status_code=HTTPStatus.BAD_REQUEST,
-            )
-            return response
-
-        recommended_properties = region.get(constants.RECOMMENDED_PROPERTIES_FIELD)
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
-        filter_by = [ObjectId(property_id) for property_id in recommended_properties]
+        location_filter = {
+            constants.LOCATION_FIELD: SON(
+                [
+                    (
+                        "$nearSphere",
+                        [location.get("longitude"), location.get("latitude")],
+                    ),
+                ]
+            )
+        }
         properties = list(
             property_details_collection.find(
-                {constants.INDEX_ID: {"$in": filter_by}},
+                location_filter,
                 {
                     constants.INDEX_ID: 1,
                     constants.IMAGES_FIELD: 1,
@@ -1324,13 +1314,11 @@ def get_nearby_properties(
                     constants.LOCATION_FIELD: 1,
                 },
             )
-            .sort(constants.CREATED_AT_FIELD, -1)
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
-        document_count = property_details_collection.count_documents(
-            {constants.INDEX_ID: {"$in": filter_by}}
-        )
+        
+        document_count = len(list(property_details_collection.find(location_filter)))
         response_list = []
         for property in properties:
             response_list.append(
