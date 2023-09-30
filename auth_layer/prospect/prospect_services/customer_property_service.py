@@ -378,7 +378,7 @@ def add_residential_property(
         logger.error(f"Error in Add Residential Property Service: {e}")
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_FAILURE,
-            data={constants.MESSAGE: f"Error in Add Residential Property Service: {e}"},
+            data={constants.MESSAGE: f"Error in Add Residential Property Service: {e}", constants.ID: str(residential_index.inserted_id) },
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Add Residential Property Service")
