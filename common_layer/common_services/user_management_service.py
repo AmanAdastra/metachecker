@@ -100,7 +100,7 @@ def refresh_access_token(refresh_token: str):
             if k != constants.TOKEN_EXPIRE_TIME_KEY
         }
         data = {
-            constants.ID: user_data.get(constants.INDEX_ID),
+            constants.ID: user_data.get(constants.ID),
             constants.EMAIL_ID_FIELD: user_data.get(constants.EMAIL_ID_FIELD),
             constants.USER_TYPE_FIELD: user_data.get(constants.USER_TYPE_FIELD),
         }
