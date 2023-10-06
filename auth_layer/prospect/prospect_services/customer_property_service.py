@@ -884,7 +884,7 @@ def update_farm_property(
 
 
 def update_property_view_count(
-    property_id, token: Annotated[str, Depends(oauth2_scheme)]
+    property_id
 ):
     logger.debug("Inside Update View Count Of Property Service")
     try:

@@ -90,9 +90,9 @@ def update_farm_property(property_id:str, request: FarmPropertyRequestSchema, to
     return response
 
 @router.put("/update-property-view-count")
-def update_property_view_count(property_id:str, token: str = Depends(oauth2_scheme)):
+def update_property_view_count(property_id:str):
     logger.debug("Inside Update Property View Count Router")
-    response = customer_property_service.update_property_view_count(property_id=property_id, token=token)
+    response = customer_property_service.update_property_view_count(property_id=property_id)
     logger.debug("Returning From the Update Property View Count Router")
     return response
 
