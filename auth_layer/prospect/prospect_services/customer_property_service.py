@@ -888,8 +888,6 @@ def update_property_view_count(
 ):
     logger.debug("Inside Update View Count Of Property Service")
     try:
-        token = token_decoder(token)
-        user_id = token.get(constants.ID)
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         property_details = property_details_collection.find_one(
             {constants.INDEX_ID: ObjectId(property_id)}
