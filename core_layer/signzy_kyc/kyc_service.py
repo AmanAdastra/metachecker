@@ -8,7 +8,7 @@ from common_layer.common_services.utils import token_decoder
 from common_layer.common_schemas.user_schema import ResponseMessage
 from database import db
 from http import HTTPStatus
-
+from bson import ObjectId
 
 def test_signzy_login():
     url = "https://preproduction.signzy.tech/api/v2/patrons/login"
@@ -18,7 +18,6 @@ def test_signzy_login():
     headers = {"Content-Type": "application/json"}
     response = requests.request("POST", url, headers=headers, data=payload)
     response_dict = json.loads(response.text)
-    print(response_dict)
     return response_dict
 
 
@@ -53,7 +52,7 @@ def digilocker():
 
 
 def digilocker_verification(request_id):
-    signzy_login = json.loads(test_signzy_login())
+    signzy_login = test_signzy_login()
     user_id = signzy_login.get("userId")
     access_token = signzy_login.get("id")
     url = (
@@ -75,7 +74,7 @@ def digilocker_verification(request_id):
 def digilocker_verification_endpoint(
     request: kyc_schema.DigilockerVerificationRequest, token
 ):
-    logger.debug("Inside Get User Wallet Service")
+    logger.debug("Inside Digilocker Verification Service")
     try:
         logger.debug("Decoding Token")
         decoded_token = token_decoder(token)
@@ -89,14 +88,15 @@ def digilocker_verification_endpoint(
         )
         response = digilocker_verification(request_id=request.request_id)
         if "error" in response:
-            return {
-                "type": "error",
-                "status": "400",
-                "message": response["error"]["message"],
-            }
-        if user_collection.find_one({constants.ID: user_id}):
+            response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Digilocker Verification Service: {response['error']['message']}"},
+            status_code=HTTPStatus.NOT_ACCEPTABLE,
+        )
+            return response
+        if user_collection.find_one({constants.INDEX_ID: ObjectId(user_id)}):
             user_collection.update_one(
-                {constants.Id: user_id},
+                {constants.INDEX_ID: ObjectId(user_id)},
                 {constants.UPDATE_INDEX_DATA: {"kyc_verified": True}},
             )
             response = ResponseMessage(
@@ -105,12 +105,13 @@ def digilocker_verification_endpoint(
                 status_code=HTTPStatus.ACCEPTED,
             )
             return response
+        logger.debug("User not found")
     except Exception as e:
-        logger.error(f"Error in Get User Wallet Service: {e}")
+        logger.error(f"Error in Digilocker Verification Service: {e}")
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_FAILURE,
-            data={constants.MESSAGE: f"Error in Get User Wallet Service: {e}"},
+            data={constants.MESSAGE: f"Error in Digilocker Verification Service: {e}"},
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
-    logger.debug("Returning From the Get User Wallet Service")
+    logger.debug("Returning From the Digilocker Verification Service")
     return response

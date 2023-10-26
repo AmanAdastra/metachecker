@@ -11,7 +11,7 @@ router = APIRouter(
 @router.post("/kyc/digilocker-verification")
 def digilocker_verification(request: kyc_schema.DigilockerVerificationRequest,token: str = Depends(oauth2_scheme) ):
     logger.debug("Inside Digilocker Verification Route")
-    response = kyc_service.digilocker_verification(request,token)
+    response = kyc_service.digilocker_verification_endpoint(request,token)
     logger.debug("Returning from Digilocker Verification Route")
     return response
 
