@@ -120,152 +120,41 @@ def digilocker_verification_endpoint(
     return response
 
 
-def bank_account_transfer(data: kyc_schema.AccountTransfer):
-    signzy_login = test_signzy_login()
-    user_id = signzy_login.get("userId")
-    access_token = signzy_login.get("id")
-    data = dict(data)
-    url = "https://preproduction.signzy.tech/api/v2/patrons/" + user_id + "/bankaccountverifications"
-    payload = json.dumps(
-        {
-            "task": "bankTransfer",
-            "essentials": {
-                "beneficiaryAccount": data["bank_account"],
-                "beneficiaryIFSC": data["bank_ifsc"],
-                "beneficiaryMobile": "",
-            },
-        }
-    )
-    headers = {"Authorization": access_token, "Content-Type": "application/json"}
-    response = requests.request("POST", url, headers=headers, data=payload)
-    response_dict = json.loads(response.text)
-    return response_dict
-
-
-def verify_transfer(data: kyc_schema.VerifyTransfer):
-    signzy_login = test_signzy_login()
-    user_id = signzy_login.get("userId")
-    access_token = signzy_login.get("id")
-    data = dict(data)
-    url = "https://preproduction.signzy.tech/api/v2/patrons/" + user_id + "/bankaccountverifications"
-    payload = json.dumps(
-        {
-            "task": "verifyAmount",
-            "essentials": {
-                "amount": data["amount"],
-                "signzyId": data["signzyId"],
-            },
-        }
-    )
-    headers = {"Authorization": access_token, "Content-Type": "application/json"}
-    response = requests.request("POST", url, headers=headers, data=payload)
-    response_dict = json.loads(response.text)
-    return response_dict
-
-
 def add_bank_account(request: kyc_schema.BankDetails, token):
     try:
         logger.debug("Decoding Token")
         decoded_token = token_decoder(token)
         user_id = decoded_token.get(constants.ID)
         user_collection = db[constants.USER_DETAILS_SCHEMA]
+        bank_account_collection = db[constants.CUSTOMER_BANK_DETAILS_SCHEMA]
         logger.debug("Getting User Wallet for User: " + str(user_id))
         logger.debug(
             "Inside digilocker verification service function for user_id: {user_id}".format(
                 user_id=user_id
             )
         )
-
         user_record = user_collection.find_one({constants.INDEX_ID: ObjectId(user_id)})
-
         if not user_record:
             common_msg = ResponseMessage(
-                type=constants.ERROR_MESSAGE,
+                type=constants.HTTP_RESPONSE_FAILURE,
                 status=status.HTTP_404_NOT_FOUND,
                 data={constants.MESSAGE: constants.USER_DOES_NOT_EXIST},
             )
             return common_msg
-
-        # Verify the ifsc code using razorpay
-        URL = constants.RAZORPAY_IFSC_URL
-        data = requests.get(URL + "/" + request.ifsc_code).json()
-        if data == "Not Found":
-            common_msg = ResponseMessage(
-                type=constants.ERROR_MESSAGE,
-                status=status.HTTP_404_NOT_FOUND,
-                data={constants.MESSAGE: "IFSC Code not Found"},
-            )
-            return common_msg
-        verify_data = {
-            "bank_account": request.account_number,
-            "bank_ifsc": request.ifsc_code,
+        bank_details = {
+            "user_id": user_id,
+            "account_number": request.account_number,
+            "ifsc_code": request.ifsc_code,
         }
-        try:
-            response = bank_account_transfer(verify_data)
-        except:
-            common_msg = ResponseMessage(
-                type=constants.ERROR_MESSAGE,
-                status=status.HTTP_404_NOT_FOUND,
-                data={constants.MESSAGE: "Invalid Bank Account Number"},
-            )
-            return common_msg
+        bank_account_collection.insert_one(bank_details)
 
-        if response["result"]["active"] == "no":
-            common_msg = ResponseMessage(
-                type=constants.ERROR_MESSAGE,
-                status=status.HTTP_400_BAD_REQUEST,
-                data={constants.MESSAGE: "INVALID_BANK_ACCOUNT"},
-            )
-            return common_msg
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            status=status.HTTP_404_NOT_FOUND,
+            data={constants.MESSAGE: "Account Added Successfully"},
+        )
+        return response
 
-        beneficiary_name = response["result"]["bankTransfer"]["beneName"]
-        signzyReferenceId = response["result"]["signzyReferenceId"]
-        beneficiary_ifsc = response["result"]["bankTransfer"]["beneIFSC"]
-        signzy_data = {
-            "amount": 1.01,
-            "signzyId": signzyReferenceId,
-        }
-        response = verify_transfer(signzy_data)
-        if response["result"]["amountMatch"]:
-            owner_name = response["result"]["owerName"]
-            if (
-                owner_name.strip().lower() != beneficiary_name.strip().lower()
-            ) and beneficiary_ifsc != request.ifsc_code:
-                common_msg = ResponseMessage(
-                    type=constants.ERROR_MESSAGE,
-                    status=status.HTTP_400_BAD_REQUEST,
-                    data={
-                        constants.MESSAGE: "Owner name and beneficiary Account Info does not match"
-                    },
-                )
-                return common_msg
-            else:
-                bank_details = {
-                    "user_id": user_id,
-                    "account_number": request.account_number,
-                    "ifsc_code": request.ifsc_code,
-                    "beneficiary_name": beneficiary_name,
-                    "signzyReferenceId": signzyReferenceId,
-                    "beneficiary_ifsc": beneficiary_ifsc,
-                    "branch_name": data["BRANCH"],
-                    "bank_name": data["BANK"],
-                }
-                bank_details_collection = db["user_bank_account"]
-                bank_details_collection.insert_one(bank_details)
-                bank_details["_id"] = str(bank_details["_id"])
-                response = {
-                    "type": constants.HTTP_RESPONSE_SUCCESS,
-                    "message": "Bank account added successfully",
-                    "data": bank_details,
-                }
-                return response
-        else:
-            common_msg = ResponseMessage(
-                type=constants.ERROR_MESSAGE,
-                status=status.HTTP_400_BAD_REQUEST,
-                data={constants.MESSAGE: "BANK_ACCOUNT_VERIFICATION_FAILED"},
-            )
-            return common_msg
     except Exception as e:
         logger.error(f"Error in Digilocker Verification Service: {e}")
         response = ResponseMessage(

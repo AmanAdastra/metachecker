@@ -30,6 +30,7 @@ ALGORITHM = os.getenv("ALGORITHM")
 # Signzy
 SIGNZY_USERNAME=os.getenv("SIGNZY_USERNAME")
 SIGNZY_PASSWORD=os.getenv("SIGNZY_PASSWORD")
+RAZORPAY_IFSC_URL = os.getenv("RAZORPAY_IFSC_URL")
 
 # AWS Configuration
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
@@ -87,6 +88,7 @@ CUSTOMER_LEADS_SCHEMA = "customer_leads"
 CUSTOMER_CONVERSATION_SCHEMA = "customer_conversations"
 CUSTOMER_PROPERTY_ANALYTICS_SCHEMA = "customer_property_analytics"
 CUSTOMER_DAILY_PROPERTY_ANALYTICS_SCHEMA = "customer_daily_property_analytics"
+CUSTOMER_BANK_DETAILS_SCHEMA = "customer_bank_details_schema"
 
 # Schemas Fields
 STATUS_FIELD = "status"
