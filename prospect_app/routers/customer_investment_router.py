@@ -27,6 +27,13 @@ def add_balance(token: str = Depends(oauth2_scheme), amount: float = Form(...)):
     logger.debug("Returning From the Add Balance Router")
     return response
 
+@router.post("/withdraw-balance")
+def withdraw_balance(token: str = Depends(oauth2_scheme), amount: float = Form(...)):
+    logger.debug("Inside Withdraw Balance Router")
+    response = customer_investment_service.withdraw_balance(token=token, amount=amount)
+    logger.debug("Returning From the Withdraw Balance Router")
+    return response
+
 @router.post("/buy-investment-share")
 def buy_investment_quanity(token: str = Depends(oauth2_scheme), quantity: int = Form(...), property_id: str = Form(...)):
     logger.debug("Inside Buy Investment Share Router")

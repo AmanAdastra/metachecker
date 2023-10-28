@@ -156,6 +156,60 @@ def add_balance(token, amount):
     return response
 
 
+def withdraw_balance(token, amount):
+    logger.debug("Inside Withdraw Balance Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        logger.debug("Getting User Wallet for User: " + str(user_id))
+        user_wallet_collection = db[constants.USER_WALLET_SCHEMA]
+        user_wallet = user_wallet_collection.find_one({"user_id": user_id})
+        if user_wallet is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "User Wallet Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+
+        if amount < 0:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Amount Cannot be Negative. "},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+
+        if user_wallet.get("balance") < amount:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Amount Exceeded the Wallet Balance. "},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+
+        balance = user_wallet.get("balance")
+        balance = balance - amount
+        user_wallet_collection.update_one(
+            {"user_id": user_id}, {"$set": {"balance": balance}}
+        )
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"balance": balance},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Withdraw Balance Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Withdraw Balance Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Withdraw Balance Service")
+    return response
+
+
 def fetch_available_shared(property_details):
     if property_details.get(constants.CATEGORY_FIELD) == "residential":
         residentail_category_collection = db[
@@ -793,7 +847,9 @@ def get_investment_progress_details(
     return response
 
 
-def get_property_order_history(property_id: str, token: str, page_number: int, per_page: int):
+def get_property_order_history(
+    property_id: str, token: str, page_number: int, per_page: int
+):
     logger.debug("Inside Get Property Order History Service")
     try:
         logger.debug("Decoding Token")
@@ -802,9 +858,14 @@ def get_property_order_history(property_id: str, token: str, page_number: int, p
         customer_transaction_details_collection = db[
             constants.CUSTOMER_TRANSACTION_SCHEMA
         ]
-        customer_transaction_details = customer_transaction_details_collection.find(
-            {"user_id": (user_id), "property_id": property_id},
-        ).sort("transaction_date", -1).skip((page_number - 1) * per_page).limit(per_page)
+        customer_transaction_details = (
+            customer_transaction_details_collection.find(
+                {"user_id": (user_id), "property_id": property_id},
+            )
+            .sort("transaction_date", -1)
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
         if customer_transaction_details is None:
             response = ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
@@ -831,10 +892,19 @@ def get_property_order_history(property_id: str, token: str, page_number: int, p
             transaction["property_title"] = property_details.get("project_title")
             transactions.append(transaction)
 
-        count_total_transactions = customer_transaction_details_collection.count_documents({"user_id": (user_id), "property_id": property_id})
+        count_total_transactions = (
+            customer_transaction_details_collection.count_documents(
+                {"user_id": (user_id), "property_id": property_id}
+            )
+        )
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={"transactions": transactions, "total_transactions": count_total_transactions, "page_number": page_number, "per_page": per_page},
+            data={
+                "transactions": transactions,
+                "total_transactions": count_total_transactions,
+                "page_number": page_number,
+                "per_page": per_page,
+            },
             status_code=HTTPStatus.OK,
         )
     except Exception as e:
