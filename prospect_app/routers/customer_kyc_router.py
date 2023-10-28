@@ -36,3 +36,12 @@ def add_bank_details(
     response = kyc_service.add_bank_account(request, token)
     logger.debug("Returning from add_bank_details route")
     return response
+
+@router.put("/kyc/update-bank-details")
+def update_bank_details(
+    request: kyc_schema.BankDetails, token: str = Depends(oauth2_scheme)
+):
+    logger.debug("Inside Update Bank Details route")
+    response = kyc_service.update_bank_account(request, token)
+    logger.debug("Returning from Update Bank Details route")
+    return response

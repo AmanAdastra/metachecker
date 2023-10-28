@@ -129,7 +129,7 @@ def add_bank_account(request: kyc_schema.BankDetails, token):
         bank_account_collection = db[constants.CUSTOMER_BANK_DETAILS_SCHEMA]
         logger.debug("Getting User Wallet for User: " + str(user_id))
         logger.debug(
-            "Inside digilocker verification service function for user_id: {user_id}".format(
+            "Inside Add Bank Account Service function for user_id: {user_id}".format(
                 user_id=user_id
             )
         )
@@ -156,11 +156,55 @@ def add_bank_account(request: kyc_schema.BankDetails, token):
         return response
 
     except Exception as e:
-        logger.error(f"Error in Digilocker Verification Service: {e}")
+        logger.error(f"Error in Add Bank Account Service: {e}")
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_FAILURE,
-            data={constants.MESSAGE: f"Error in Digilocker Verification Service: {e}"},
+            data={constants.MESSAGE: f"Error in Add Bank Account Service: {e}"},
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
-    logger.debug("Returning From the Digilocker Verification Service")
+    logger.debug("Returning From the Add Bank Account Service")
+    return response
+
+
+def update_bank_account(request: kyc_schema.BankDetails, token):
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        user_collection = db[constants.USER_DETAILS_SCHEMA]
+        bank_account_collection = db[constants.CUSTOMER_BANK_DETAILS_SCHEMA]
+        logger.debug("Getting User Wallet for User: " + str(user_id))
+        logger.debug(
+            "Inside Update Bank Account function for user_id: {user_id}".format(
+                user_id=user_id
+            )
+        )
+        user_record = user_collection.find_one({constants.INDEX_ID: ObjectId(user_id)})
+        if not user_record:
+            common_msg = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                status=status.HTTP_404_NOT_FOUND,
+                data={constants.MESSAGE: constants.USER_DOES_NOT_EXIST},
+            )
+            return common_msg
+        
+        bank_account_collection.find_one_and_update({constants.USER_ID_FIELD:user_id},{constants.UPDATE_INDEX_DATA:{
+            "account_number": request.account_number, "ifsc_code":request.ifsc_code
+        }})
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            status=status.HTTP_404_NOT_FOUND,
+            data={constants.MESSAGE: "Account Updated Successfully"},
+        )
+        return response
+
+    except Exception as e:
+        logger.error(f"Error in Update Bank Account Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Update Bank Account Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Update Bank Account Service")
     return response
