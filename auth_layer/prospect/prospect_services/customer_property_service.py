@@ -956,7 +956,7 @@ def get_list_of_featured_properties(
         filter_by = [ObjectId(property_id) for property_id in featured_properties]
         properties = list(
             property_details_collection.find(
-                {constants.INDEX_ID: {"$in": filter_by}},
+                {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value },
                 {
                     constants.INDEX_ID: 1,
                     constants.PROJECT_TITLE_FIELD: 1,
@@ -971,7 +971,7 @@ def get_list_of_featured_properties(
             .limit(per_page)
         )
         document_count = property_details_collection.count_documents(
-            {constants.INDEX_ID: {"$in": filter_by}}
+            {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value}
         )
         response_list = []
         for property in properties:
@@ -1057,7 +1057,7 @@ def get_list_of_recommended_properties(
         filter_by = [ObjectId(property_id) for property_id in recommended_properties]
         properties = list(
             property_details_collection.find(
-                {constants.INDEX_ID: {"$in": filter_by}},
+                {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value},
                 {
                     constants.INDEX_ID: 1,
                     constants.PROJECT_TITLE_FIELD: 1,
@@ -1074,7 +1074,7 @@ def get_list_of_recommended_properties(
             .limit(per_page)
         )
         document_count = property_details_collection.count_documents(
-            {constants.INDEX_ID: {"$in": filter_by}}
+            {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value}
         )
         response_list = []
         for property in properties:
@@ -1125,7 +1125,7 @@ def get_list_of_most_viewed_properties(per_page: int, page_number: int):
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         properties = list(
             property_details_collection.find(
-                {},
+                { constants.STATUS_FIELD: PropertyStatus.ACTIVE.value},
                 {
                     constants.INDEX_ID: 1,
                     constants.PROJECT_TITLE_FIELD: 1,
@@ -1142,7 +1142,7 @@ def get_list_of_most_viewed_properties(per_page: int, page_number: int):
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
-        document_count = property_details_collection.count_documents({})
+        document_count = property_details_collection.count_documents({ constants.STATUS_FIELD: PropertyStatus.ACTIVE.value})
         response_list = []
         for property in properties:
             response_list.append(
@@ -1229,7 +1229,7 @@ def get_list_of_top_properties(
         filter_by = [ObjectId(property_id) for property_id in top_properties]
         properties = list(
             property_details_collection.find(
-                {constants.INDEX_ID: {"$in": filter_by}},
+                {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value},
                 {
                     constants.INDEX_ID: 1,
                     constants.IMAGES_FIELD: 1,
@@ -1243,7 +1243,7 @@ def get_list_of_top_properties(
             .limit(per_page)
         )
         document_count = property_details_collection.count_documents(
-            {constants.INDEX_ID: {"$in": filter_by}}
+            {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value}
         )
         response_list = []
         for property in properties:
@@ -1299,7 +1299,7 @@ def get_nearby_properties(
                         [location.get("longitude"), location.get("latitude")],
                     ),
                 ]
-            )
+            ), constants.STATUS_FIELD: PropertyStatus.ACTIVE.value
         }
         properties = list(
             property_details_collection.find(
