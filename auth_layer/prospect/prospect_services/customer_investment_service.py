@@ -710,12 +710,25 @@ def get_property_current_wallet_value(
                 "price"
             ) - candle_details.get("candle_data")[-2].get("price")
 
-        property_records = customer_wallet.get(property_id)
+        if property_details.get("available_shares") is None:
+            fetch_available_shared_response = jsonable_encoder(
+                fetch_available_shared(property_details)
+            )
+            if (
+                fetch_available_shared_response.get("type")
+                == constants.HTTP_RESPONSE_FAILURE
+            ):
+                return fetch_available_shared_response
+            current_available_shares = fetch_available_shared_response.get("data").get(
+                "available_shares"
+            )
+        else:
+            current_available_shares = property_details.get("available_shares")
 
         response_dict = {
             "project_title": property_details.get("project_title"),
-            "current_quantity": property_records.get("quantity"),
-            "avg_price": property_records.get("avg_price"),
+            "current_quantity": current_available_shares,
+            "avg_price": property_details.get("price"),
             "current_price": property_details.get("price"),
             "change_in_price": change_in_price,
         }
