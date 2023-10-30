@@ -156,6 +156,10 @@ PROPERTY_GAIN_FIELD = "property_gain"
 STATUS_FIELD = "status"
 SENDER_ID_FIELD = "sender_id"
 RECIEVER_ID_FIELD = "reciever_id"
+BANKING_NAME="banking_name"
+ACCOUNT_NUMBER="account_number"
+IFSC_CODE="ifsc_code"
+IS_PRIMARY_ACCOUNT="is_primary"
 
 
 # Messages
@@ -185,6 +189,10 @@ INVALID_USER_TYPE = "Invalid User Type!"
 SECURE_PIN_MATCH = "Secure Pin Matched Successfully!"
 SECURE_PIN_NOT_MATCH = "Secure Pin Not Matched!"
 CUSTOMERS_NOT_ALLOWED = "Customers are not allowed to login here!"
+BANK_ACCOUNT_ALREADY_EXIST = "Bank Account Number already Exist"
+PRIMARY_ACCOUNT_EXIST = "Primary Bank Account Already Exist, Please remove it to mark this primary"
+DELETE_PRIMARY_ACCOUNT = "You can not delete Primary Account"
+RECORD_DOES_NOT_FOUND="Record does not found"
 # Response Keys
 USER_DETAILS = "user_details"
 MESSAGE = "message"

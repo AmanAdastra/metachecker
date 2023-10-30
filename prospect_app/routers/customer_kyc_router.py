@@ -39,7 +39,7 @@ def add_bank_details(
 
 @router.put("/kyc/update-bank-details")
 def update_bank_details(
-    request: kyc_schema.BankDetails, token: str = Depends(oauth2_scheme)
+    request: kyc_schema.UpdateBankDetailsSchema, token: str = Depends(oauth2_scheme)
 ):
     logger.debug("Inside Update Bank Details route")
     response = kyc_service.update_bank_account(request, token)
@@ -47,10 +47,20 @@ def update_bank_details(
     return response
 
 @router.get("/kyc/get-bank-details")
-def update_bank_details(
+def get_bank_details(
  token: str = Depends(oauth2_scheme)
 ):
     logger.debug("Inside Get Bank Details route")
     response = kyc_service.get_bank_account_details( token)
     logger.debug("Returning from Get Bank Details route")
+    return response
+
+@router.delete("/kyc/delete-bank-details")
+def delete_bank_details(
+    record_id:str,
+ token: str = Depends(oauth2_scheme)
+):
+    logger.debug("Inside Delete Bank Details route")
+    response = kyc_service.delete_bank_account_details(record_id, token)
+    logger.debug("Returning from Delete Bank Details route")
     return response

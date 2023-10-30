@@ -13,5 +13,10 @@ class VerifyTransfer(BaseModel):
     signzyId: str
 
 class BankDetails(BaseModel):
+    banking_name: str
     account_number : str
     ifsc_code : str
+    is_primary: bool
+
+class UpdateBankDetailsSchema(BankDetails):
+    record_id:str

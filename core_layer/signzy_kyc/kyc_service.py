@@ -9,7 +9,7 @@ from common_layer.common_schemas.user_schema import ResponseMessage
 from database import db
 from http import HTTPStatus
 from bson import ObjectId
-
+from fastapi.encoders import jsonable_encoder
 
 def test_signzy_login():
     url = "https://preproduction.signzy.tech/api/v2/patrons/login"
@@ -141,13 +141,26 @@ def add_bank_account(request: kyc_schema.BankDetails, token):
                 data={constants.MESSAGE: constants.USER_DOES_NOT_EXIST},
             )
             return common_msg
-        bank_details = {
-            "user_id": user_id,
-            "account_number": request.account_number,
-            "ifsc_code": request.ifsc_code,
-        }
-        bank_account_collection.insert_one(bank_details)
+        
+        if bank_account_collection.find_one({constants.ACCOUNT_NUMBER:request.account_number}):
+            common_msg = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                data={constants.MESSAGE: constants.BANK_ACCOUNT_ALREADY_EXIST},
+            )
+            return common_msg
+        
+        if bank_account_collection.find_one({constants.IS_PRIMARY_ACCOUNT:True}):
+            common_msg = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                data={constants.MESSAGE: constants.PRIMARY_ACCOUNT_EXIST},
+            )
+            return common_msg
 
+        bank_details = jsonable_encoder(request)
+        bank_details[constants.USER_ID_FIELD] = user_id
+        inserted_id = bank_account_collection.insert_one(bank_details).inserted_id
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             status_code=status.HTTP_202_ACCEPTED,
@@ -165,8 +178,8 @@ def add_bank_account(request: kyc_schema.BankDetails, token):
     logger.debug("Returning From the Add Bank Account Service")
     return response
 
-
-def update_bank_account(request: kyc_schema.BankDetails, token):
+# Edit this
+def update_bank_account(request: kyc_schema.UpdateBankDetailsSchema, token):
     try:
         logger.debug("Decoding Token")
         decoded_token = token_decoder(token)
@@ -188,9 +201,25 @@ def update_bank_account(request: kyc_schema.BankDetails, token):
             )
             return common_msg
         
-        bank_account_collection.find_one_and_update({constants.USER_ID_FIELD:user_id},{constants.UPDATE_INDEX_DATA:{
-            "account_number": request.account_number, "ifsc_code":request.ifsc_code
-        }})
+        if not bank_account_collection.find_one({constants.INDEX_ID:ObjectId(request.record_id)}):
+            common_msg = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                status_code=status.HTTP_404_NOT_FOUND,
+                data={constants.MESSAGE: constants.RECORD_DOES_NOT_FOUND},
+            )
+            return common_msg
+        
+        if request.is_primary and bank_account_collection.find_one({constants.USER_ID_FIELD:user_id,constants.IS_PRIMARY_ACCOUNT:True}):
+            common_msg = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                data={constants.MESSAGE: constants.PRIMARY_ACCOUNT_EXIST},
+            )
+            return common_msg
+
+        updated_data = jsonable_encoder(request)
+        del updated_data["record_id"]
+        bank_account_collection.find_one_and_update({constants.INDEX_ID:ObjectId(request.record_id)},{constants.UPDATE_INDEX_DATA:updated_data})
 
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
@@ -231,7 +260,7 @@ def get_bank_account_details(token):
             )
             return common_msg
         
-        bank_details = bank_account_collection.find_one({constants.USER_ID_FIELD:user_id})
+        bank_details = bank_account_collection.find({constants.USER_ID_FIELD:user_id})
         if bank_details is None:
             common_msg = ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
@@ -239,13 +268,16 @@ def get_bank_account_details(token):
                 data={constants.MESSAGE: "Bank Deails Not Found"},
             )
             return common_msg
-        
-        bank_details[constants.INDEX_ID] = str(bank_details[constants.INDEX_ID])
+        bank_details_list = []
+        for details in bank_details:
+            details[constants.ID] = str(details[constants.INDEX_ID])
+            del details[constants.INDEX_ID]
+            bank_details_list.append(details)
 
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            status_code=status.HTTP_404_NOT_FOUND,
-            data={constants.MESSAGE: "Get Bank Details Successfully","data":bank_details},
+            status_code=status.HTTP_200_OK,
+            data={constants.MESSAGE: "Get Bank Details Successfully","data":bank_details_list},
         )
         return response
 
@@ -257,4 +289,61 @@ def get_bank_account_details(token):
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Get Bank Account Service")
+    return response
+
+def delete_bank_account_details(record_id:str, token):
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        user_collection = db[constants.USER_DETAILS_SCHEMA]
+        bank_account_collection = db[constants.CUSTOMER_BANK_DETAILS_SCHEMA]
+        logger.debug("Getting User Wallet for User: " + str(user_id))
+        logger.debug(
+            "Inside Delete Bank Account function for user_id: {user_id}".format(
+                user_id=user_id
+            )
+        )
+        user_record = user_collection.find_one({constants.INDEX_ID: ObjectId(user_id)})
+        if not user_record:
+            common_msg = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                status_code=status.HTTP_404_NOT_FOUND,
+                data={constants.MESSAGE: constants.USER_DOES_NOT_EXIST},
+            )
+            return common_msg
+        bank_record = bank_account_collection.find_one({constants.INDEX_ID:ObjectId(record_id)})
+        if not bank_record:
+            common_msg = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                status_code=status.HTTP_404_NOT_FOUND,
+                data={constants.MESSAGE: constants.RECORD_DOES_NOT_FOUND},
+            )
+            return common_msg
+        
+        if bank_record.get(constants.IS_PRIMARY_ACCOUNT):
+            common_msg = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                data={constants.MESSAGE: constants.DELETE_PRIMARY_ACCOUNT},
+            )
+            return common_msg
+        
+        bank_account_collection.delete_one({constants.INDEX_ID:ObjectId(record_id)})
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            status_code=status.HTTP_200_OK,
+            data={constants.MESSAGE: "Bank Account Deleted Successfully!"},
+        )
+        return response
+
+    except Exception as e:
+        logger.error(f"Error in Delete Bank Account Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Delete Bank Account Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Delete Bank Account Service")
     return response
