@@ -153,7 +153,7 @@ def add_bank_account(request: kyc_schema.BankDetails, token):
             )
             return common_msg
 
-        if bank_account_collection.find_one({constants.IS_PRIMARY_ACCOUNT: True, constants.USER_ID_FIELD:user_id}):
+        if  request.is_primary and bank_account_collection.find_one({constants.IS_PRIMARY_ACCOUNT: True, constants.USER_ID_FIELD:user_id}):
             common_msg = ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
                 status_code=status.HTTP_400_BAD_REQUEST,
