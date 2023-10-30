@@ -20,3 +20,11 @@ class BankDetails(BaseModel):
 
 class UpdateBankDetailsSchema(BankDetails):
     record_id:str
+
+class KycDetailsSchema(BaseModel):
+    name:str
+    pan_number:str
+    aadhar_number:str
+
+class UpdateKycDetailsSchema(KycDetailsSchema):
+    record_id:str

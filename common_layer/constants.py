@@ -7,6 +7,7 @@ HTTP_RESPONSE_FAILURE = "error"
 MONGODB_URL = os.getenv("MONGODB_URL")
 UPDATE_INDEX_DATA = "$set"
 OR_INDEX_OPERATOR = "$or"
+NOT_EQUAL_TO_OPERATOR = "$ne"
 IMAGE_CONTENT_SIZE = int(os.getenv("IMAGE_CONTENT_SIZE"))
 
 
@@ -89,6 +90,7 @@ CUSTOMER_CONVERSATION_SCHEMA = "customer_conversations"
 CUSTOMER_PROPERTY_ANALYTICS_SCHEMA = "customer_property_analytics"
 CUSTOMER_DAILY_PROPERTY_ANALYTICS_SCHEMA = "customer_daily_property_analytics"
 CUSTOMER_BANK_DETAILS_SCHEMA = "customer_bank_details_schema"
+CUSTOMER_KYC_DETAILS_SCHEMA = "kyc_details_schema"
 
 # Schemas Fields
 STATUS_FIELD = "status"
@@ -160,6 +162,8 @@ BANKING_NAME="banking_name"
 ACCOUNT_NUMBER="account_number"
 IFSC_CODE="ifsc_code"
 IS_PRIMARY_ACCOUNT="is_primary"
+AADHAR_NUMBER="aadhar_number"
+PAN_NUMBER="pan_number"
 
 
 # Messages
@@ -193,6 +197,8 @@ BANK_ACCOUNT_ALREADY_EXIST = "Bank Account Number already Exist"
 PRIMARY_ACCOUNT_EXIST = "Primary Bank Account Already Exist, Please remove it to mark this primary"
 DELETE_PRIMARY_ACCOUNT = "You can not delete Primary Account"
 RECORD_DOES_NOT_FOUND="Record does not found"
+AADHAR_ALREADY_EXIST="Aadhar Number already Exist"
+PAN_NUMBER_ALREADY_EXIST="Pan Number Already Exist"
 # Response Keys
 USER_DETAILS = "user_details"
 MESSAGE = "message"
