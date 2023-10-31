@@ -517,12 +517,14 @@ def sell_investment_share(token, quantity, property_id):
             )
             return response
 
-        old_balance = user_wallet.get("balance")
-        amount = quantity * current_price
+        
 
         current_available_shares = property_details.get("available_shares")
 
         current_price = property_details.get("price")
+
+        old_balance = user_wallet.get("balance")
+        amount = quantity * current_price
 
         user_wallet[property_id]["quantity"] = (
             user_wallet[property_id]["quantity"] - quantity
