@@ -95,3 +95,10 @@ def get_fiat_transaction_history(page_number:int, per_page:int, token: str = Dep
     )
     logger.debug("Returning From the Geet Customer Fiat Transaction Service")
     return response
+
+@router.get("/get-fiat-transaction-details-by-id")
+def get_transaction_details_by_id(transaction_id: str,token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Fiat Transaction Details By Id Router")
+    response = customer_investment_service.get_fiat_transaction_details_by_id(token=token, transaction_id=transaction_id)
+    logger.debug("Returning From the Get Fiat Transaction Details By Id Router")
+    return response

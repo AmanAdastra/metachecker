@@ -1051,3 +1051,47 @@ def get_customer_fiat_transactions(page_number: int, per_page: int, token: str):
         )
     logger.debug("Returning From the Get Customer Fiat Transaction Service")
     return response
+
+def get_fiat_transaction_details_by_id(token, transaction_id):
+    logger.debug("Inside Get Transaction Details By Id Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        customer_transaction_details_collection = db[
+            constants.CUSTOMER_FIAT_TRANSACTIONS_SCHEMA
+        ]
+        customer_transaction_details = customer_transaction_details_collection.find_one(
+            {"transaction_id": (transaction_id)}
+        )
+        if customer_transaction_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Transaction Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        if customer_transaction_details.get("user_id") != user_id:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Transaction Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        del customer_transaction_details["_id"]
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"transaction_details": customer_transaction_details},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Transaction Details By Id Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Transaction Details By Id Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Transaction Details By Id Service")
+    return response
