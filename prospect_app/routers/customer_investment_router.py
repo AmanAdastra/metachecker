@@ -86,3 +86,12 @@ def get_property_order_history(page_number:int, per_page:int,property_id:str, to
     )
     logger.debug("Returning From the Get Property Order History Router")
     return response
+
+@router.get("/get-fiat-transaction-history")
+def get_fiat_transaction_history(page_number:int, per_page:int, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Customer Fiat Transaction  Router")
+    response = customer_investment_service.get_customer_fiat_transactions(
+        page_number=page_number, per_page=per_page, token=token
+    )
+    logger.debug("Returning From the Geet Customer Fiat Transaction Service")
+    return response

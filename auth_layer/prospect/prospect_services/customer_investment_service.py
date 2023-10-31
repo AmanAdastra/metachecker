@@ -12,6 +12,8 @@ from core_layer.aws_cloudfront.core_cloudfront import cloudfront_sign
 from auth_layer.prospect.prospect_schemas.customer_investment_schema import (
     CustomerSharesInDb,
     CustomerTransactionSchemaInDB,
+    CustomerFiatTransactionSchemaInDB,
+    TransactionType
 )
 
 
@@ -127,6 +129,7 @@ def add_balance(token, amount):
         user_id = decoded_token.get(constants.ID)
         logger.debug("Getting User Wallet for User: " + str(user_id))
         user_wallet_collection = db[constants.USER_WALLET_SCHEMA]
+        customer_fiat_collection = db[constants.CUSTOMER_FIAT_TRANSACTIONS_SCHEMA]
         user_wallet = user_wallet_collection.find_one({"user_id": user_id})
         if user_wallet is None:
             response = ResponseMessage(
@@ -135,11 +138,23 @@ def add_balance(token, amount):
                 status_code=HTTPStatus.NOT_FOUND,
             )
             return response
-        balance = user_wallet.get("balance")
-        balance = balance + amount
+        old_balance = user_wallet.get("balance")
+        balance = old_balance + amount
         user_wallet_collection.update_one(
             {"user_id": user_id}, {"$set": {"balance": balance}}
         )
+        
+        fiat_record = jsonable_encoder(CustomerFiatTransactionSchemaInDB(
+            user_id=user_id,
+            balance=old_balance,
+            transaction_amount=amount,
+            transaction_id=str(uuid4()),
+            transaction_type = TransactionType.AMOUNT_DEPOSITED.value,
+            transaction_status="SUCCESS"
+        ))
+
+        customer_fiat_collection.insert_one(fiat_record)
+
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={"balance": balance},
@@ -164,6 +179,7 @@ def withdraw_balance(token, amount):
         user_id = decoded_token.get(constants.ID)
         logger.debug("Getting User Wallet for User: " + str(user_id))
         user_wallet_collection = db[constants.USER_WALLET_SCHEMA]
+        customer_fiat_collection = db[constants.CUSTOMER_FIAT_TRANSACTIONS_SCHEMA]
         user_wallet = user_wallet_collection.find_one({"user_id": user_id})
         if user_wallet is None:
             response = ResponseMessage(
@@ -189,11 +205,23 @@ def withdraw_balance(token, amount):
             )
             return response
 
-        balance = user_wallet.get("balance")
-        balance = balance - amount
+        old_balance = user_wallet.get("balance")
+        balance = old_balance - amount
         user_wallet_collection.update_one(
             {"user_id": user_id}, {"$set": {"balance": balance}}
         )
+
+        fiat_record = jsonable_encoder(CustomerFiatTransactionSchemaInDB(
+            user_id=user_id,
+            balance=old_balance,
+            transaction_amount=amount,
+            transaction_id=str(uuid4()),
+            transaction_type = TransactionType.AMOUNT_WITHDRAW.value,
+            transaction_status="SUCCESS"
+        ))
+
+        customer_fiat_collection.insert_one(fiat_record)
+
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={"balance": balance},
@@ -290,6 +318,7 @@ def buy_investment_share(token, quantity, property_id):
         user_id = decoded_token.get(constants.ID)
         logger.debug("Getting User Wallet for User: " + str(user_id))
         user_wallet_collection = db[constants.USER_WALLET_SCHEMA]
+        customer_fiat_collection = db[constants.CUSTOMER_FIAT_TRANSACTIONS_SCHEMA]
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         customer_transaction_details_collection = db[
             constants.CUSTOMER_TRANSACTION_SCHEMA
@@ -353,7 +382,9 @@ def buy_investment_share(token, quantity, property_id):
                 status_code=HTTPStatus.NOT_FOUND,
             )
             return response
-
+        
+        old_balance = user_wallet.get("balance")
+        amount = quantity * current_price
         if user_wallet.get(property_id) is None:
             investment_value = quantity * current_price
             logger.debug("Property Not Exists in User Wallet")
@@ -401,6 +432,17 @@ def buy_investment_share(token, quantity, property_id):
             jsonable_encoder(customer_transaction_index)
         )
 
+        fiat_record = jsonable_encoder(CustomerFiatTransactionSchemaInDB(
+            user_id=user_id,
+            balance=old_balance,
+            transaction_amount=amount,
+            transaction_id=str(uuid4()),
+            transaction_type = TransactionType.BUY_SHARES.value,
+            transaction_status="SUCCESS"
+        ))
+
+        customer_fiat_collection.insert_one(fiat_record)
+
         del user_wallet["_id"]
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
@@ -430,6 +472,8 @@ def sell_investment_share(token, quantity, property_id):
         logger.debug("Getting User Wallet for User: " + str(user_id))
         user_wallet_collection = db[constants.USER_WALLET_SCHEMA]
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        customer_fiat_collection = db[constants.CUSTOMER_FIAT_TRANSACTIONS_SCHEMA]
+
         user_wallet = user_wallet_collection.find_one({"user_id": user_id})
         customer_transaction_details_collection = db[
             constants.CUSTOMER_TRANSACTION_SCHEMA
@@ -469,6 +513,9 @@ def sell_investment_share(token, quantity, property_id):
                 status_code=HTTPStatus.NOT_FOUND,
             )
             return response
+
+        old_balance = user_wallet.get("balance")
+        amount = quantity * current_price
 
         current_available_shares = property_details.get("available_shares")
 
@@ -516,6 +563,17 @@ def sell_investment_share(token, quantity, property_id):
         customer_transaction_index = customer_transaction_details_collection.insert_one(
             jsonable_encoder(transaction_index)
         )
+
+        fiat_record = jsonable_encoder(CustomerFiatTransactionSchemaInDB(
+            user_id=user_id,
+            balance=old_balance,
+            transaction_amount=amount,
+            transaction_id=str(uuid4()),
+            transaction_type = TransactionType.SELL_SHARES.value,
+            transaction_status="SUCCESS"
+        ))
+
+        customer_fiat_collection.insert_one(fiat_record)
 
         del user_wallet["_id"]
         response = ResponseMessage(
@@ -930,4 +988,62 @@ def get_property_order_history(
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Get Property Order History Service")
+    return response
+
+
+def get_customer_fiat_transactions(page_number: int, per_page: int, token: str):
+    logger.debug("Inside Get Customer Fiat Transaction Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        customer_fiat_transaction_details_collection = db[
+            constants.CUSTOMER_FIAT_TRANSACTIONS_SCHEMA
+        ]
+        customer_transaction_details = (
+            customer_fiat_transaction_details_collection.find(
+                {"user_id": (user_id)},
+            )
+            .sort("transaction_date", -1)
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
+        if customer_transaction_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Transaction Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        transactions = []
+        for transaction in customer_transaction_details:
+            transaction["_id"] = str(transaction.get("_id"))
+            transactions.append(transaction)
+
+        count_total_transactions = (
+            customer_fiat_transaction_details_collection.count_documents(
+                {"user_id": (user_id)}
+            )
+        )
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={
+                "transactions": transactions,
+                "total_transactions": count_total_transactions,
+                "page_number": page_number,
+                "per_page": per_page,
+            },
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get Customer Fiat Transaction Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Customer Fiat Transaction Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Customer Fiat Transaction Service")
     return response
