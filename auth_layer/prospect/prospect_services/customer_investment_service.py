@@ -150,7 +150,8 @@ def add_balance(token, amount):
             transaction_amount=amount,
             transaction_id=str(uuid4()),
             transaction_type = TransactionType.AMOUNT_DEPOSITED.value,
-            transaction_status="SUCCESS"
+            transaction_status="SUCCESS",
+            transaction_date=time.time()
         ))
 
         customer_fiat_collection.insert_one(fiat_record)
@@ -217,7 +218,8 @@ def withdraw_balance(token, amount):
             transaction_amount=amount,
             transaction_id=str(uuid4()),
             transaction_type = TransactionType.AMOUNT_WITHDRAW.value,
-            transaction_status="SUCCESS"
+            transaction_status="SUCCESS",
+            transaction_date=time.time()
         ))
 
         customer_fiat_collection.insert_one(fiat_record)
@@ -438,7 +440,8 @@ def buy_investment_share(token, quantity, property_id):
             transaction_amount=amount,
             transaction_id=str(uuid4()),
             transaction_type = TransactionType.BUY_SHARES.value,
-            transaction_status="SUCCESS"
+            transaction_status="SUCCESS",
+            transaction_date=time.time()
         ))
 
         customer_fiat_collection.insert_one(fiat_record)
@@ -570,7 +573,8 @@ def sell_investment_share(token, quantity, property_id):
             transaction_amount=amount,
             transaction_id=str(uuid4()),
             transaction_type = TransactionType.SELL_SHARES.value,
-            transaction_status="SUCCESS"
+            transaction_status="SUCCESS",
+            transaction_date=time.time()
         ))
 
         customer_fiat_collection.insert_one(fiat_record)
