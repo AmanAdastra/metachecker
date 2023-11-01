@@ -137,7 +137,7 @@ def add_seed_users():
         logger.debug("Customer user added ")
 
 
-@app.on_event("startup")
+# @app.on_event("startup")
 def seed_data():
     logger.debug("Inserting seed data")
     if db[constants.PROPERTY_DETAILS_SCHEMA].count_documents({}) == 0:
