@@ -371,7 +371,7 @@ def add_residential_property(
         )
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={constants.MESSAGE: "Residential Property Added Successfully",constants.ID: str(residential_index.inserted_id)},
+            data={constants.MESSAGE: "Residential Property Added Successfully",constants.ID: str(property_index.inserted_id)},
             status_code=HTTPStatus.OK,
         )
     except Exception as e:
@@ -1299,8 +1299,9 @@ def get_nearby_properties(
                         [location.get("longitude"), location.get("latitude")],
                     ),
                 ]
-            ), constants.STATUS_FIELD: PropertyStatus.ACTIVE.value
+            )
         }
+        location_filter={}
         properties = list(
             property_details_collection.find(
                 location_filter,
