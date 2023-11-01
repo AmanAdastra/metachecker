@@ -1299,9 +1299,8 @@ def get_nearby_properties(
                         [location.get("longitude"), location.get("latitude")],
                     ),
                 ]
-            )
+            ), constants.STATUS_FIELD: PropertyStatus.ACTIVE.value
         }
-        location_filter={}
         properties = list(
             property_details_collection.find(
                 location_filter,
