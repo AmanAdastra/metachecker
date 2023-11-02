@@ -102,3 +102,10 @@ def get_transaction_details_by_id(transaction_id: str,token: str = Depends(oauth
     response = customer_investment_service.get_fiat_transaction_details_by_id(token=token, transaction_id=transaction_id)
     logger.debug("Returning From the Get Fiat Transaction Details By Id Router")
     return response
+
+@router.get("/shares-graph")
+def get_shares_graph(property_id:str):
+    logger.debug("Inside Get Shares Graph Router")
+    response = customer_investment_service.shares_graph(property_id=property_id)
+    logger.debug("Returning From the Get Shares Graph Router")
+    return response

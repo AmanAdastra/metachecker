@@ -13,7 +13,7 @@ from auth_layer.prospect.prospect_schemas.customer_investment_schema import (
     CustomerSharesInDb,
     CustomerTransactionSchemaInDB,
     CustomerFiatTransactionSchemaInDB,
-    TransactionType
+    TransactionType,
 )
 
 
@@ -46,7 +46,14 @@ def get_user_wallet(token):
 
         property_details = property_details_collection.find(
             {constants.INDEX_ID: {"$in": property_ids}},
-            {"project_title": 1, "address": 1, "price": 1, "project_logo": 1, "_id": 1, "roi_percentage":1},
+            {
+                "project_title": 1,
+                "address": 1,
+                "price": 1,
+                "project_logo": 1,
+                "_id": 1,
+                "roi_percentage": 1,
+            },
         )
         candlestick_data = candlestick_data_collection.find(
             {
@@ -71,7 +78,7 @@ def get_user_wallet(token):
             if wallet_quantity > 0:
                 portfolio_balance += wallet_quantity * property_detail.get("price")
                 investment_balance += investment_value
-                avg_roi+= property_detail.get("roi_percentage")
+                avg_roi += property_detail.get("roi_percentage")
                 candle_data = candle_dict.get(
                     str(property_detail.get(constants.INDEX_ID))
                 )
@@ -100,7 +107,7 @@ def get_user_wallet(token):
                         }
                     }
                 )
-        avg_roi=avg_roi/len(portfolio_details) if len(portfolio_details) else 0
+        avg_roi = avg_roi / len(portfolio_details) if len(portfolio_details) else 0
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={
@@ -108,7 +115,7 @@ def get_user_wallet(token):
                 "balance": user_wallet.get("balance"),
                 "portfolio_balance": portfolio_balance,
                 "investment_balance": investment_balance,
-                "avg_roi":avg_roi
+                "avg_roi": avg_roi,
             },
             status_code=HTTPStatus.OK,
         )
@@ -145,16 +152,18 @@ def add_balance(token, amount):
         user_wallet_collection.update_one(
             {"user_id": user_id}, {"$set": {"balance": balance}}
         )
-        
-        fiat_record = jsonable_encoder(CustomerFiatTransactionSchemaInDB(
-            user_id=user_id,
-            balance=old_balance,
-            transaction_amount=amount,
-            transaction_id=str(uuid4()),
-            transaction_type = TransactionType.AMOUNT_DEPOSITED.value,
-            transaction_status="SUCCESS",
-            transaction_date=time.time()
-        ))
+
+        fiat_record = jsonable_encoder(
+            CustomerFiatTransactionSchemaInDB(
+                user_id=user_id,
+                balance=old_balance,
+                transaction_amount=amount,
+                transaction_id=str(uuid4()),
+                transaction_type=TransactionType.AMOUNT_DEPOSITED.value,
+                transaction_status="SUCCESS",
+                transaction_date=time.time(),
+            )
+        )
 
         customer_fiat_collection.insert_one(fiat_record)
 
@@ -214,15 +223,17 @@ def withdraw_balance(token, amount):
             {"user_id": user_id}, {"$set": {"balance": balance}}
         )
 
-        fiat_record = jsonable_encoder(CustomerFiatTransactionSchemaInDB(
-            user_id=user_id,
-            balance=old_balance,
-            transaction_amount=amount,
-            transaction_id=str(uuid4()),
-            transaction_type = TransactionType.AMOUNT_WITHDRAW.value,
-            transaction_status="SUCCESS",
-            transaction_date=time.time()
-        ))
+        fiat_record = jsonable_encoder(
+            CustomerFiatTransactionSchemaInDB(
+                user_id=user_id,
+                balance=old_balance,
+                transaction_amount=amount,
+                transaction_id=str(uuid4()),
+                transaction_type=TransactionType.AMOUNT_WITHDRAW.value,
+                transaction_status="SUCCESS",
+                transaction_date=time.time(),
+            )
+        )
 
         customer_fiat_collection.insert_one(fiat_record)
 
@@ -386,7 +397,7 @@ def buy_investment_share(token, quantity, property_id):
                 status_code=HTTPStatus.NOT_FOUND,
             )
             return response
-        
+
         old_balance = user_wallet.get("balance")
         amount = quantity * current_price
         if user_wallet.get(property_id) is None:
@@ -436,15 +447,17 @@ def buy_investment_share(token, quantity, property_id):
             jsonable_encoder(customer_transaction_index)
         )
 
-        fiat_record = jsonable_encoder(CustomerFiatTransactionSchemaInDB(
-            user_id=user_id,
-            balance=old_balance,
-            transaction_amount=amount,
-            transaction_id=str(uuid4()),
-            transaction_type = TransactionType.BUY_SHARES.value,
-            transaction_status="SUCCESS",
-            transaction_date=time.time()
-        ))
+        fiat_record = jsonable_encoder(
+            CustomerFiatTransactionSchemaInDB(
+                user_id=user_id,
+                balance=old_balance,
+                transaction_amount=amount,
+                transaction_id=str(uuid4()),
+                transaction_type=TransactionType.BUY_SHARES.value,
+                transaction_status="SUCCESS",
+                transaction_date=time.time(),
+            )
+        )
 
         customer_fiat_collection.insert_one(fiat_record)
 
@@ -519,8 +532,6 @@ def sell_investment_share(token, quantity, property_id):
             )
             return response
 
-        
-
         current_available_shares = property_details.get("available_shares")
 
         current_price = property_details.get("price")
@@ -571,15 +582,17 @@ def sell_investment_share(token, quantity, property_id):
             jsonable_encoder(transaction_index)
         )
 
-        fiat_record = jsonable_encoder(CustomerFiatTransactionSchemaInDB(
-            user_id=user_id,
-            balance=old_balance,
-            transaction_amount=amount,
-            transaction_id=str(uuid4()),
-            transaction_type = TransactionType.SELL_SHARES.value,
-            transaction_status="SUCCESS",
-            transaction_date=time.time()
-        ))
+        fiat_record = jsonable_encoder(
+            CustomerFiatTransactionSchemaInDB(
+                user_id=user_id,
+                balance=old_balance,
+                transaction_amount=amount,
+                transaction_id=str(uuid4()),
+                transaction_type=TransactionType.SELL_SHARES.value,
+                transaction_status="SUCCESS",
+                transaction_date=time.time(),
+            )
+        )
 
         customer_fiat_collection.insert_one(fiat_record)
 
@@ -1056,6 +1069,7 @@ def get_customer_fiat_transactions(page_number: int, per_page: int, token: str):
     logger.debug("Returning From the Get Customer Fiat Transaction Service")
     return response
 
+
 def get_fiat_transaction_details_by_id(token, transaction_id):
     logger.debug("Inside Get Transaction Details By Id Service")
     try:
@@ -1088,6 +1102,59 @@ def get_fiat_transaction_details_by_id(token, transaction_id):
             data={"transaction_details": customer_transaction_details},
             status_code=HTTPStatus.OK,
         )
+    except Exception as e:
+        logger.error(f"Error in Get Transaction Details By Id Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Transaction Details By Id Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Transaction Details By Id Service")
+    return response
+
+
+def shares_graph(property_id: str):
+    try:
+        logger.debug("Decoding Token")
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+
+        property_details = property_details_collection.find_one(
+            {constants.INDEX_ID: ObjectId(property_id)}
+        )
+
+        if property_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Property Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        current_shares = ""
+        fetch_available_shared_response = jsonable_encoder(
+            fetch_available_shared(property_details)
+        )
+        if (
+            fetch_available_shared_response.get("type")
+            == constants.HTTP_RESPONSE_FAILURE
+        ):
+            return fetch_available_shared_response
+        total_shares = fetch_available_shared_response.get("data").get(
+            "available_shares"
+        )
+        current_available_shares = property_details.get("available_shares")
+        response_dict = {
+            "current_available_shares": current_available_shares if current_available_shares else 0,
+            "total_shares": total_shares
+        }
+
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data=response_dict,
+            status_code=HTTPStatus.OK,
+        )
+
     except Exception as e:
         logger.error(f"Error in Get Transaction Details By Id Service: {e}")
         response = ResponseMessage(
