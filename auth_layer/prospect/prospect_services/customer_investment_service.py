@@ -46,7 +46,7 @@ def get_user_wallet(token):
 
         property_details = property_details_collection.find(
             {constants.INDEX_ID: {"$in": property_ids}},
-            {"project_title": 1, "address": 1, "price": 1, "project_logo": 1, "_id": 1},
+            {"project_title": 1, "address": 1, "price": 1, "project_logo": 1, "_id": 1, "roi_percentage":1},
         )
         candlestick_data = candlestick_data_collection.find(
             {
@@ -61,7 +61,7 @@ def get_user_wallet(token):
             candle_dict[str(candle.get(constants.PROPERTY_ID_FIELD))] = candle.get(
                 "candle_data"
             )
-        portfolio_balance, investment_balance = 0, 0
+        portfolio_balance, investment_balance, avg_roi = 0, 0, 0
         for property_detail in property_details:
             property_wallet_record = user_wallet.get(
                 str(property_detail.get(constants.INDEX_ID))
@@ -71,6 +71,7 @@ def get_user_wallet(token):
             if wallet_quantity > 0:
                 portfolio_balance += wallet_quantity * property_detail.get("price")
                 investment_balance += investment_value
+                avg_roi+= property_detail.get("roi_percentage")
                 candle_data = candle_dict.get(
                     str(property_detail.get(constants.INDEX_ID))
                 )
@@ -99,7 +100,7 @@ def get_user_wallet(token):
                         }
                     }
                 )
-
+        avg_roi=avg_roi/len(portfolio_details) if len(portfolio_details) else 0
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={
@@ -107,6 +108,7 @@ def get_user_wallet(token):
                 "balance": user_wallet.get("balance"),
                 "portfolio_balance": portfolio_balance,
                 "investment_balance": investment_balance,
+                "avg_roi":avg_roi
             },
             status_code=HTTPStatus.OK,
         )
