@@ -35,9 +35,9 @@ def check_already_lead_exist(property_id:str, token: str = Depends(oauth2_scheme
     return response
 
 @router.get("/get-candle-of-property")
-def get_candle_of_property(property_id:str, token: str = Depends(oauth2_scheme)):
+def get_candle_of_property(property_id:str):
     logger.debug("Inside Get Candle Of Property Router")
-    response = customer_leads_management_service.get_candle_of_property(property_id, token)
+    response = customer_leads_management_service.get_candle_of_property(property_id)
     logger.debug("Returning From the Get Candle Of Property Router")
     return response
 
