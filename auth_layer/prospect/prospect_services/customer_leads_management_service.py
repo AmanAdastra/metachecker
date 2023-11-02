@@ -191,10 +191,6 @@ def check_already_lead_exist(property_id: str, token: str = Depends(oauth2_schem
 def get_candle_of_property(property_id: str, token: str = Depends(oauth2_scheme)):
     logger.debug("Inside Get Candle Of Property Service")
     try:
-        decoded_token = token_decoder(token)
-        logger.debug("Decoded Token : " + str(decoded_token))
-        user_id = decoded_token.get(constants.ID)
-        logger.debug("User Id : " + str(user_id))
 
         candle_details_collection = db[constants.CANDLE_DETAILS_SCHEMA]
 
