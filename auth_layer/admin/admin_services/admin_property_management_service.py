@@ -849,13 +849,10 @@ def set_recommended_properties(
 
 def get_candles_of_property(
     property_id: str,
-    token: Annotated[str, Depends(oauth2_scheme)] = None,
 ):
     logger.debug("Inside Get Candles of Property Service")
     try:
-        decoded_token = token_decoder(token)
-        user_id = ObjectId(decoded_token.get(constants.ID))
-        logger.debug(f"Candles of Property fetched by User Id: {user_id}")
+        logger.debug(f"Candles of Property fetched")
 
         property_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
 

@@ -208,9 +208,9 @@ def update_farm_property(property_id:str, request: FarmPropertyRequestSchema, to
     return response
 
 @router.get("/get-candles-of-property")
-def get_candles_of_property(property_id:str, token: str = Depends(oauth2_scheme)):
+def get_candles_of_property(property_id:str):
     logger.debug("Inside Get Candles Of Property Router")
-    response = admin_property_management_service.get_candles_of_property(property_id=property_id, token=token)
+    response = admin_property_management_service.get_candles_of_property(property_id=property_id)
     logger.debug("Returning From the Get Candles Of Property Router")
     return response
 
