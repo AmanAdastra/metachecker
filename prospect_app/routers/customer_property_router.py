@@ -181,6 +181,16 @@ def get_property_list(per_page:int, page_number:int, filter_dict:dict, sort_dict
     logger.debug("Returning From the Get Property List Router")
     return response
 
+@router.post("/get-property-list-by-region-id")
+def get_property_list_by_region_id(per_page:int, page_number:int, region_id:str):
+    logger.debug("Inside Get Property List by Region Id Router")
+    response = customer_property_service.get_property_list_by_region_id(
+        per_page=per_page, page_number=page_number,region_id=region_id
+        
+    )
+    logger.debug("Returning From the Get Property List by Region ID Router")
+    return response
+
 @router.post("/upload-property-documents")
 def upload_brochure_or_project_document(property_id:str,type:str,document_title:str, document: UploadFile = File(...), token: str = Depends(oauth2_scheme)):
     logger.debug("Inside Upload Property Documents Router")

@@ -1898,6 +1898,73 @@ def get_property_list(
     logger.debug("Returning From the Get Property List Service")
     return response
 
+def get_property_list_by_region_id(
+    page_number: int,
+    per_page: int,
+    region_id:str
+):
+    logger.debug("Inside Get Property List Service")
+    try:
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        properties = list(
+            property_details_collection.find(
+                {constants.REGION_ID_FIELD:region_id},
+                {
+                    constants.INDEX_ID: 1,
+                    constants.PROJECT_TITLE_FIELD: 1,
+                    constants.ADDRESS_FIELD: 1,
+                    constants.PRICE_FIELD: 1,
+                    constants.IMAGES_FIELD: 1,
+                    constants.LISTED_BY_FIELD: 1,
+                    constants.CREATED_AT_FIELD: 1,
+                    constants.LOCATION_FIELD: 1,
+                },
+            )
+            .sort(constants.CREATED_AT_FIELD, -1)
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
+        document_count = property_details_collection.count_documents({constants.REGION_ID_FIELD:region_id})
+        response_list = []
+        for property in properties:
+            response_list.append(
+                {
+                    constants.ID: str(property[constants.INDEX_ID]),
+                    constants.PROJECT_TITLE_FIELD: property[
+                        constants.PROJECT_TITLE_FIELD
+                    ],
+                    constants.ADDRESS_FIELD: property[constants.ADDRESS_FIELD],
+                    constants.PRICE_FIELD: property[constants.PRICE_FIELD],
+                    constants.IMAGES_FIELD: [
+                        core_cloudfront.cloudfront_sign(image_key)
+                        for image_key in property[constants.IMAGES_FIELD][:4]
+                    ],
+                    constants.LISTED_BY_FIELD: property[constants.LISTED_BY_FIELD],
+                    constants.CREATED_AT_FIELD: property[constants.CREATED_AT_FIELD],
+                    constants.LOCATION_FIELD: property[constants.LOCATION_FIELD],
+                }
+            )
+
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={
+                "properties": response_list,
+                "document_count": document_count,
+                "page_number": page_number,
+                "per_page": per_page,
+            },
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Property List Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Property List Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Property List Service")
+    return response
+
 
 def upload_brochure_or_project_document(
     property_id: str,
