@@ -23,7 +23,7 @@ from routers import (
     customer_conversation_router,
     customer_kyc_router
 )
-from auth_layer.prospect.prospect_services import customer_property_service
+from auth_layer.prospect.prospect_services import customer_property_service, customer_investment_service
 from pymongo import GEOSPHERE
 from database import db
 from common_layer import constants
@@ -317,3 +317,9 @@ def seed_data():
 
                 response = customer_property_service.add_farm_property(request, access_token)
                 logger.debug("Seed data inserted: " + str(response))
+
+schedule.every().day.at("23:50").do(customer_investment_service.user_wallet_snapshot_handler)
+@app.on_event("startup")
+@repeat_every(seconds=60)
+async def user_wallet_snapshot_cron()->None:
+        schedule.run_pending()

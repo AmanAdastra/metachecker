@@ -8,6 +8,7 @@ MONGODB_URL = os.getenv("MONGODB_URL")
 UPDATE_INDEX_DATA = "$set"
 OR_INDEX_OPERATOR = "$or"
 NOT_EQUAL_TO_OPERATOR = "$ne"
+IN_OPERATOR="$in"
 IMAGE_CONTENT_SIZE = int(os.getenv("IMAGE_CONTENT_SIZE"))
 
 
@@ -92,6 +93,7 @@ CUSTOMER_PROPERTY_ANALYTICS_SCHEMA = "customer_property_analytics"
 CUSTOMER_DAILY_PROPERTY_ANALYTICS_SCHEMA = "customer_daily_property_analytics"
 CUSTOMER_BANK_DETAILS_SCHEMA = "customer_bank_details_schema"
 CUSTOMER_KYC_DETAILS_SCHEMA = "kyc_details_schema"
+PORTFOLIO_ANALYSIS_SCHEMA = "portfolio_analysis"
 
 # Schemas Fields
 STATUS_FIELD = "status"
@@ -139,6 +141,7 @@ IS_INVESTMENT_PROPERTY="is_investment_property"
 PROJECT_TITLE_FIELD = "project_title"
 AD_DESCRIPTION_FIELD = "ad_description"
 PRICE_FIELD = "price"
+QUANTITY_FIELD = "quantity"
 REGION_FIELD = "region"
 IMAGES_FIELD = "images"
 ADDRESS_FIELD = "address"

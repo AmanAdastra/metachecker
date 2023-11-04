@@ -124,3 +124,11 @@ async def filter_transactions(
     response = customer_investment_service.get_filtered_fiat_transactions(min_transaction_date,max_transaction_date,transaction_type,transaction_id, page_number, per_page, token)
     logger.debug("Returning From the Get Filtered Graph Router")
     return response
+
+
+# @router.get("/user-wallet-snapshot")
+def use_wallet_snapshot():
+    logger.debug("Inside User wallet snapshot Router")
+    response = customer_investment_service.user_wallet_snapshot_handler()
+    logger.debug("Returning From the User wallet snapshot Router")
+    return response

@@ -28,6 +28,7 @@ def get_user_wallet(token):
         user_wallet = user_wallet_collection.find_one({"user_id": user_id})
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         candlestick_data_collection = db[constants.CANDLE_DETAILS_SCHEMA]
+        portfolio_analysis_collection = db[constants.PORTFOLIO_ANALYSIS_SCHEMA]
         if user_wallet is None:
             response = ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
@@ -55,10 +56,11 @@ def get_user_wallet(token):
                 "roi_percentage": 1,
             },
         )
+        property_id_list = [str(property_id) for property_id in property_ids]
         candlestick_data = candlestick_data_collection.find(
             {
                 constants.PROPERTY_ID_FIELD: {
-                    "$in": [str(property_id) for property_id in property_ids]
+                    "$in": property_id_list
                 }
             },
             {"candle_data": 1, "property_id": 1},
@@ -68,7 +70,12 @@ def get_user_wallet(token):
             candle_dict[str(candle.get(constants.PROPERTY_ID_FIELD))] = candle.get(
                 "candle_data"
             )
-        portfolio_balance, investment_balance, avg_roi = 0, 0, 0
+
+        portfolio_analysis = portfolio_analysis_collection.find_one({constants.USER_ID_FIELD:user_id})
+        if not portfolio_analysis:
+            portfolio_analysis = {}
+
+        portfolio_balance, investment_balance, avg_roi, yesterday_balance, today_balance = 0, 0, 0, 0, 0
         for property_detail in property_details:
             property_wallet_record = user_wallet.get(
                 str(property_detail.get(constants.INDEX_ID))
@@ -76,6 +83,14 @@ def get_user_wallet(token):
             wallet_quantity = property_wallet_record.get("quantity")
             investment_value = property_wallet_record.get("investment_value")
             if wallet_quantity > 0:
+                yesterday_record = portfolio_analysis.get(str(property_detail.get(constants.INDEX_ID)))
+                if not yesterday_record:
+                    yesterday_balance += 0
+                    yesterday_quantity = 0
+                else:
+                    yesterday_quantity = yesterday_record.get(constants.QUANTITY_FIELD)
+                    yesterday_balance +=  yesterday_quantity * yesterday_record.get(constants.PRICE_FIELD)
+                today_balance += yesterday_quantity * property_detail.get("price")
                 portfolio_balance += wallet_quantity * property_detail.get("price")
                 investment_balance += investment_value
                 avg_roi += property_detail.get("roi_percentage")
@@ -107,6 +122,11 @@ def get_user_wallet(token):
                         }
                     }
                 )
+        
+        day_change = (today_balance - yesterday_balance )
+        day_change_percent =  day_change / yesterday_balance if yesterday_balance else 0
+        total_change = (portfolio_balance- investment_balance )
+        total_change_percent = total_change / investment_balance if investment_balance else 0 
         avg_roi = avg_roi / len(portfolio_details) if len(portfolio_details) else 0
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
@@ -115,7 +135,11 @@ def get_user_wallet(token):
                 "balance": user_wallet.get("balance"),
                 "portfolio_balance": portfolio_balance,
                 "investment_balance": investment_balance,
+                "day_change":day_change,
+                "day_change_percent":day_change_percent,
                 "avg_roi": avg_roi,
+                "total_change":total_change,
+                "total_change_percent":total_change_percent
             },
             status_code=HTTPStatus.OK,
         )
@@ -172,7 +196,14 @@ def add_balance(token, amount):
             data={"balance": balance},
             status_code=HTTPStatus.OK,
         )
-        fcm_push_notification(user_id=user_id, title="Square", description=f"{amount} Rs Deposited in your wallet.", module="Invest", seconds=0, extra={})
+        fcm_push_notification(
+            user_id=user_id,
+            title="Square",
+            description=f"{amount} Rs Deposited in your wallet.",
+            module="Invest",
+            seconds=0,
+            extra={},
+        )
     except Exception as e:
         logger.error(f"Error in Add Balance Service: {e}")
         response = ResponseMessage(
@@ -1146,8 +1177,10 @@ def shares_graph(property_id: str):
         )
         current_available_shares = property_details.get("available_shares")
         response_dict = {
-            "current_available_shares": current_available_shares if current_available_shares else 0,
-            "total_shares": total_shares
+            "current_available_shares": current_available_shares
+            if current_available_shares
+            else 0,
+            "total_shares": total_shares,
         }
 
         response = ResponseMessage(
@@ -1168,7 +1201,16 @@ def shares_graph(property_id: str):
     logger.debug("Returning From the Get Transaction Details By Id Service")
     return response
 
-def get_filtered_fiat_transactions(min_transaction_date,max_transaction_date,transaction_type,transaction_id, page_number, per_page, token):
+
+def get_filtered_fiat_transactions(
+    min_transaction_date,
+    max_transaction_date,
+    transaction_type,
+    transaction_id,
+    page_number,
+    per_page,
+    token,
+):
     try:
         logger.debug("Decoding Token")
         decoded_token = token_decoder(token)
@@ -1179,7 +1221,7 @@ def get_filtered_fiat_transactions(min_transaction_date,max_transaction_date,tra
 
         skip = (page_number - 1) * per_page
 
-        filter_query = {constants.USER_ID_FIELD:user_id}
+        filter_query = {constants.USER_ID_FIELD: user_id}
 
         # Iterate through filter parameters and add to the query if not None
         filter_query = {
@@ -1194,18 +1236,21 @@ def get_filtered_fiat_transactions(min_transaction_date,max_transaction_date,tra
         if min_transaction_date and max_transaction_date:
             filter_query["transaction_date"] = {
                 "$gte": min_transaction_date,
-                "$lte": max_transaction_date
+                "$lte": max_transaction_date,
             }
         elif min_transaction_date:
             filter_query["transaction_date"] = {
                 "$gte": min_transaction_date,
             }
         elif max_transaction_date:
-            filter_query["transaction_date"] = {
-                "$lte": max_transaction_date
-            }
+            filter_query["transaction_date"] = {"$lte": max_transaction_date}
         # Query the MongoDB collection with the filter query and apply pagination
-        filtered_transactions = list(customer_transaction_details_collection.find(filter_query).sort("transaction_date",-1).skip(skip).limit(per_page))
+        filtered_transactions = list(
+            customer_transaction_details_collection.find(filter_query)
+            .sort("transaction_date", -1)
+            .skip(skip)
+            .limit(per_page)
+        )
 
         response_data = []
 
@@ -1213,13 +1258,20 @@ def get_filtered_fiat_transactions(min_transaction_date,max_transaction_date,tra
             record[constants.ID] = str(record[constants.INDEX_ID])
             del record[constants.INDEX_ID]
             response_data.append(record)
-        document_count = customer_transaction_details_collection.count_documents(filter_query)
+        document_count = customer_transaction_details_collection.count_documents(
+            filter_query
+        )
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={"response_data": response_data, "page_number":page_number,"per_page":per_page, "document_count":document_count},
+            data={
+                "response_data": response_data,
+                "page_number": page_number,
+                "per_page": per_page,
+                "document_count": document_count,
+            },
             status_code=HTTPStatus.OK,
         )
-        
+
     except Exception as e:
         logger.error(f"Error in Get Fiat Transaction Filter Service: {e}")
         response = ResponseMessage(
@@ -1231,4 +1283,93 @@ def get_filtered_fiat_transactions(min_transaction_date,max_transaction_date,tra
         )
     logger.debug("Returning From the Get Fiat Transaction Filter Service")
     return response
-    
+
+
+def user_wallet_snapshot_handler():
+    try:
+        customer_collection = db[constants.USER_DETAILS_SCHEMA]
+        customer_wallet_collection = db[constants.USER_WALLET_SCHEMA]
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        portfolio_analysis_collection = db[constants.PORTFOLIO_ANALYSIS_SCHEMA]
+        customer_ids = list(
+            customer_collection.find(
+                {
+                    constants.IS_ACTIVE_FIELD: True,
+                    constants.USER_TYPE_FIELD: {
+                        constants.IN_OPERATOR: ["customer", "partner"]
+                    },
+                },
+                {constants.INDEX_ID: 1},
+            )
+        )
+        customer_ids = list(map(lambda x: str(x.get(constants.INDEX_ID)), customer_ids))
+        customer_wallets = list(
+            customer_wallet_collection.find(
+                {constants.USER_ID_FIELD: {constants.IN_OPERATOR: customer_ids}}
+            )
+        )
+        property_price_dict = {}
+        for wallet in customer_wallets:
+            wallet_property_id = []
+            for property_id in wallet.keys():
+                if property_id in [
+                    "_id",
+                    "user_id",
+                    "balance",
+                    "updated_at",
+                    "created_at",
+                ]:
+                    continue
+                else:
+                    wallet_property_id.append(ObjectId(property_id))
+
+            # Get all the wallet properties
+            filtered_property_id = list(
+                filter(lambda x: str(x) not in property_price_dict, wallet_property_id)
+            )
+            property_details = list(
+                property_details_collection.find(
+                    {constants.INDEX_ID: {constants.IN_OPERATOR: filtered_property_id}},
+                    {constants.INDEX_ID: 1, constants.PRICE_FIELD: 1},
+                )
+            )
+            for property_data in property_details:
+                property_price_dict[
+                    str(property_data[constants.INDEX_ID])
+                ] = property_data[constants.PRICE_FIELD]
+
+            record_data = []
+            for record in wallet_property_id:
+                record_dict = {
+                    constants.PRICE_FIELD: property_price_dict.get(str(record)),
+                    constants.QUANTITY_FIELD: wallet.get(str(record)).get(
+                        constants.QUANTITY_FIELD
+                    ),
+                }
+                record_data.append({str(record): record_dict})
+            portfolio_analysis = portfolio_analysis_collection.find_one(
+                {constants.USER_ID_FIELD: wallet.get(constants.USER_ID_FIELD)}
+            )
+            if portfolio_analysis:
+                portfolio_data = {constants.UPDATED_AT_FIELD: time.time()}
+                if record_data:
+                    for item in record_data:
+                        portfolio_data.update(item)
+                portfolio_analysis_collection.find_one_and_update(
+                    {constants.USER_ID_FIELD: wallet.get(constants.USER_ID_FIELD)},
+                    {constants.UPDATE_INDEX_DATA: portfolio_data},
+                )
+            else:
+                portfolio_data = {
+                    constants.USER_ID_FIELD: wallet.get(constants.USER_ID_FIELD),
+                    constants.CREATED_AT_FIELD: time.time(),
+                    constants.UPDATED_AT_FIELD: time.time(),
+                }
+                if record_data:
+                    for item in record_data:
+                        portfolio_data.update(item)
+                    portfolio_analysis_collection.insert_one(portfolio_data)
+        logger.debug("User wallets Snapshot taken Successfully")
+
+    except Exception as e:
+        logger.error(f"Error in Get Fiat Transaction Filter Service: {e}")
