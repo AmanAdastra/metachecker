@@ -1,6 +1,6 @@
 import time
 from uuid import uuid4
-from common_layer.common_services.utils import token_decoder
+from common_layer.common_services.utils import token_decoder, fcm_push_notification
 from prospect_app.logging_module import logger
 from database import db
 from common_layer import constants
@@ -172,6 +172,7 @@ def add_balance(token, amount):
             data={"balance": balance},
             status_code=HTTPStatus.OK,
         )
+        fcm_push_notification(user_id=user_id, title="Square", description=f"{amount} Rs Deposited in your wallet.", module="Invest", seconds=0, extra={})
     except Exception as e:
         logger.error(f"Error in Add Balance Service: {e}")
         response = ResponseMessage(
@@ -1203,7 +1204,6 @@ def get_filtered_fiat_transactions(min_transaction_date,max_transaction_date,tra
             filter_query["transaction_date"] = {
                 "$lte": max_transaction_date
             }
-        print(filter_query)
         # Query the MongoDB collection with the filter query and apply pagination
         filtered_transactions = list(customer_transaction_details_collection.find(filter_query).sort("transaction_date",-1).skip(skip).limit(per_page))
 
