@@ -117,7 +117,7 @@ async def filter_transactions(
     transaction_type: str = Query(None, description="Transaction type filter"),
     transaction_id: str = Query(None, description="Transaction ID filter"),
     page_number: int = Query(1, ge=1, description="Page number starting from 1"),
-    per_page: int = Query(10, le=50, description="Number of items per page (max: 50)"),
+    per_page: int = Query(10, description="Number of items per page"),
     token: str = Depends(oauth2_scheme)
 ):
     logger.debug("Inside Get Filtered Graph Router")
