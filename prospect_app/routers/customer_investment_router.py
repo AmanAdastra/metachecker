@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, UploadFile, File
+from fastapi import APIRouter, Depends, Form, UploadFile, File, Query
 from logging_module import logger
 from pydantic import EmailStr
 from typing import Annotated, List
@@ -108,4 +108,19 @@ def get_shares_graph(property_id:str):
     logger.debug("Inside Get Shares Graph Router")
     response = customer_investment_service.shares_graph(property_id=property_id)
     logger.debug("Returning From the Get Shares Graph Router")
+    return response
+
+@router.get("/filtered-fiat-transactions")
+async def filter_transactions(
+    min_transaction_date: float = Query(None, description="Transaction date filter"),
+    max_transaction_date: float = Query(None, description="Transaction date filter"),
+    transaction_type: str = Query(None, description="Transaction type filter"),
+    transaction_id: str = Query(None, description="Transaction ID filter"),
+    page_number: int = Query(1, ge=1, description="Page number starting from 1"),
+    per_page: int = Query(10, le=50, description="Number of items per page (max: 50)"),
+    token: str = Depends(oauth2_scheme)
+):
+    logger.debug("Inside Get Filtered Graph Router")
+    response = customer_investment_service.get_filtered_fiat_transactions(min_transaction_date,max_transaction_date,transaction_type,transaction_id, page_number, per_page, token)
+    logger.debug("Returning From the Get Filtered Graph Router")
     return response

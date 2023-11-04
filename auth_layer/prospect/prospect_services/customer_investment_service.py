@@ -1166,3 +1166,69 @@ def shares_graph(property_id: str):
         )
     logger.debug("Returning From the Get Transaction Details By Id Service")
     return response
+
+def get_filtered_fiat_transactions(min_transaction_date,max_transaction_date,transaction_type,transaction_id, page_number, per_page, token):
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        user_id = decoded_token.get(constants.ID)
+        customer_transaction_details_collection = db[
+            constants.CUSTOMER_FIAT_TRANSACTIONS_SCHEMA
+        ]
+
+        skip = (page_number - 1) * per_page
+
+        filter_query = {constants.USER_ID_FIELD:user_id}
+
+        # Iterate through filter parameters and add to the query if not None
+        filter_query = {
+            key: value
+            for key, value in {
+                "transaction_type": transaction_type,
+                "transaction_id": transaction_id,
+            }.items()
+            if value is not None
+        }
+
+        if min_transaction_date and max_transaction_date:
+            filter_query["transaction_date"] = {
+                "$gte": min_transaction_date,
+                "$lte": max_transaction_date
+            }
+        elif min_transaction_date:
+            filter_query["transaction_date"] = {
+                "$gte": min_transaction_date,
+            }
+        elif max_transaction_date:
+            filter_query["transaction_date"] = {
+                "$lte": max_transaction_date
+            }
+        print(filter_query)
+        # Query the MongoDB collection with the filter query and apply pagination
+        filtered_transactions = list(customer_transaction_details_collection.find(filter_query).sort("transaction_date",-1).skip(skip).limit(per_page))
+
+        response_data = []
+
+        for record in filtered_transactions:
+            record[constants.ID] = str(record[constants.INDEX_ID])
+            del record[constants.INDEX_ID]
+            response_data.append(record)
+        document_count = customer_transaction_details_collection.count_documents(filter_query)
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"response_data": response_data, "page_number":page_number,"per_page":per_page, "document_count":document_count},
+            status_code=HTTPStatus.OK,
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in Get Fiat Transaction Filter Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Fiat Transaction Filter Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Fiat Transaction Filter Service")
+    return response
+    

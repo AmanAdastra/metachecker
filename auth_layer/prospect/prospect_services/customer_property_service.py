@@ -371,7 +371,10 @@ def add_residential_property(
         )
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={constants.MESSAGE: "Residential Property Added Successfully",constants.ID: str(property_index.inserted_id)},
+            data={
+                constants.MESSAGE: "Residential Property Added Successfully",
+                constants.ID: str(property_index.inserted_id),
+            },
             status_code=HTTPStatus.OK,
         )
     except Exception as e:
@@ -883,9 +886,7 @@ def update_farm_property(
     return response
 
 
-def update_property_view_count(
-    property_id
-):
+def update_property_view_count(property_id):
     logger.debug("Inside Update View Count Of Property Service")
     try:
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
@@ -956,7 +957,10 @@ def get_list_of_featured_properties(
         filter_by = [ObjectId(property_id) for property_id in featured_properties]
         properties = list(
             property_details_collection.find(
-                {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value },
+                {
+                    constants.INDEX_ID: {"$in": filter_by},
+                    constants.STATUS_FIELD: PropertyStatus.ACTIVE.value,
+                },
                 {
                     constants.INDEX_ID: 1,
                     constants.PROJECT_TITLE_FIELD: 1,
@@ -971,7 +975,10 @@ def get_list_of_featured_properties(
             .limit(per_page)
         )
         document_count = property_details_collection.count_documents(
-            {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value}
+            {
+                constants.INDEX_ID: {"$in": filter_by},
+                constants.STATUS_FIELD: PropertyStatus.ACTIVE.value,
+            }
         )
         response_list = []
         for property in properties:
@@ -1057,7 +1064,10 @@ def get_list_of_recommended_properties(
         filter_by = [ObjectId(property_id) for property_id in recommended_properties]
         properties = list(
             property_details_collection.find(
-                {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value},
+                {
+                    constants.INDEX_ID: {"$in": filter_by},
+                    constants.STATUS_FIELD: PropertyStatus.ACTIVE.value,
+                },
                 {
                     constants.INDEX_ID: 1,
                     constants.PROJECT_TITLE_FIELD: 1,
@@ -1074,7 +1084,10 @@ def get_list_of_recommended_properties(
             .limit(per_page)
         )
         document_count = property_details_collection.count_documents(
-            {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value}
+            {
+                constants.INDEX_ID: {"$in": filter_by},
+                constants.STATUS_FIELD: PropertyStatus.ACTIVE.value,
+            }
         )
         response_list = []
         for property in properties:
@@ -1125,7 +1138,7 @@ def get_list_of_most_viewed_properties(per_page: int, page_number: int):
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         properties = list(
             property_details_collection.find(
-                { constants.STATUS_FIELD: PropertyStatus.ACTIVE.value},
+                {constants.STATUS_FIELD: PropertyStatus.ACTIVE.value},
                 {
                     constants.INDEX_ID: 1,
                     constants.PROJECT_TITLE_FIELD: 1,
@@ -1142,7 +1155,9 @@ def get_list_of_most_viewed_properties(per_page: int, page_number: int):
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
-        document_count = property_details_collection.count_documents({ constants.STATUS_FIELD: PropertyStatus.ACTIVE.value})
+        document_count = property_details_collection.count_documents(
+            {constants.STATUS_FIELD: PropertyStatus.ACTIVE.value}
+        )
         response_list = []
         for property in properties:
             response_list.append(
@@ -1229,7 +1244,10 @@ def get_list_of_top_properties(
         filter_by = [ObjectId(property_id) for property_id in top_properties]
         properties = list(
             property_details_collection.find(
-                {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value},
+                {
+                    constants.INDEX_ID: {"$in": filter_by},
+                    constants.STATUS_FIELD: PropertyStatus.ACTIVE.value,
+                },
                 {
                     constants.INDEX_ID: 1,
                     constants.IMAGES_FIELD: 1,
@@ -1243,7 +1261,10 @@ def get_list_of_top_properties(
             .limit(per_page)
         )
         document_count = property_details_collection.count_documents(
-            {constants.INDEX_ID: {"$in": filter_by}, constants.STATUS_FIELD: PropertyStatus.ACTIVE.value}
+            {
+                constants.INDEX_ID: {"$in": filter_by},
+                constants.STATUS_FIELD: PropertyStatus.ACTIVE.value,
+            }
         )
         response_list = []
         for property in properties:
@@ -1299,7 +1320,8 @@ def get_nearby_properties(
                         [location.get("longitude"), location.get("latitude")],
                     ),
                 ]
-            ), constants.STATUS_FIELD: PropertyStatus.ACTIVE.value
+            ),
+            constants.STATUS_FIELD: PropertyStatus.ACTIVE.value,
         }
         properties = list(
             property_details_collection.find(
@@ -1315,7 +1337,7 @@ def get_nearby_properties(
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
-        
+
         document_count = len(list(property_details_collection.find(location_filter)))
         response_list = []
         for property in properties:
@@ -1853,7 +1875,11 @@ def get_property_list(
                     constants.LOCATION_FIELD: 1,
                 },
             )
-            .sort([(key, value) for key, value in sort_dict.items()] if sort_dict else [(constants.CREATED_AT_FIELD,-1)])
+            .sort(
+                [(key, value) for key, value in sort_dict.items()]
+                if sort_dict
+                else [(constants.CREATED_AT_FIELD, -1)]
+            )
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
@@ -1898,17 +1924,14 @@ def get_property_list(
     logger.debug("Returning From the Get Property List Service")
     return response
 
-def get_property_list_by_region_id(
-    page_number: int,
-    per_page: int,
-    region_id:str
-):
+
+def get_property_list_by_region_id(page_number: int, per_page: int, region_id: str):
     logger.debug("Inside Get Property List Service")
     try:
         property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         properties = list(
             property_details_collection.find(
-                {constants.REGION_ID_FIELD:region_id},
+                {constants.REGION_ID_FIELD: region_id},
                 {
                     constants.INDEX_ID: 1,
                     constants.PROJECT_TITLE_FIELD: 1,
@@ -1924,7 +1947,9 @@ def get_property_list_by_region_id(
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
-        document_count = property_details_collection.count_documents({constants.REGION_ID_FIELD:region_id})
+        document_count = property_details_collection.count_documents(
+            {constants.REGION_ID_FIELD: region_id}
+        )
         response_list = []
         for property in properties:
             response_list.append(
@@ -2353,4 +2378,89 @@ def add_todays_property_count():
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Add Todays Property Count Service")
+    return response
+
+
+def get_filtered_properties(
+    listing_type,
+    listed_by,
+    category,
+    possession_type,
+    price_max,
+    area_max,
+    region_id,
+    roi_percentage_max,
+    page_number,
+    per_page,
+):
+    try:
+        skip = (page_number - 1) * per_page
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        filter_query = {
+            key: value
+            for key, value in {
+                "listing_type": listing_type,
+                "listed_by": listed_by,
+                "category": category,
+                "possession_type": possession_type,
+                "region_id": region_id,
+            }.items()
+            if value is not None
+        }
+        # Handle the maximum value for price, area, and roi_percentage
+        if price_max is not None:
+            filter_query["price"] = {"$lte": price_max}
+
+        if area_max is not None:
+            filter_query["area"] = {"$lte": area_max}
+
+        if roi_percentage_max is not None:
+            filter_query["roi_percentage"] = {"$lte": roi_percentage_max}
+
+        # Query the MongoDB collection with the filter query and apply pagination
+        filtered_properties = list(
+            property_details_collection.find(filter_query).skip(skip).limit(per_page)
+        )
+
+        response_data = []
+
+        for data in filtered_properties:
+            response_dict = {
+                constants.ID: str(data[constants.INDEX_ID]),
+                constants.PROJECT_TITLE_FIELD: data[constants.PROJECT_TITLE_FIELD],
+                constants.PRICE_FIELD: data[constants.PRICE_FIELD],
+                constants.IMAGES_FIELD: [
+                    core_cloudfront.cloudfront_sign(image_key)
+                    for image_key in data[constants.IMAGES_FIELD][:1]
+                ],
+                constants.CREATED_AT_FIELD: data[constants.CREATED_AT_FIELD],
+                constants.LOCATION_FIELD: data[constants.LOCATION_FIELD],
+                constants.LISTED_BY_FIELD:data[constants.LISTED_BY_FIELD],
+                constants.CATEGORY_FIELD:data[constants.CATEGORY_FIELD],
+                constants.ROI_PERCENTAGE:data[constants.ROI_PERCENTAGE],
+                constants.LISTING_TYPE_FIELD:data[constants.LISTING_TYPE_FIELD],
+                constants.POSSESSOION_TYPE_FIELD:data[constants.POSSESSOION_TYPE_FIELD]
+            }
+            response_data.append(response_dict)
+        document_count = property_details_collection.count_documents(filter_query)
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={
+                constants.MESSAGE: "Property Filtered Successfully",
+                "response_data": response_data,
+                "document_count": document_count,
+                "page_number": page_number,
+                "per_page": per_page,
+            },
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get Filtered Property Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Filtered Property Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Filtered Property Service")
     return response

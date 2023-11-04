@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, UploadFile, File
+from fastapi import APIRouter, Depends, Form, UploadFile, File, Query
 from logging_module import logger
 from pydantic import EmailStr
 from typing import Annotated, List
@@ -8,7 +8,7 @@ from auth_layer.prospect.prospect_services import customer_property_service
 from common_layer.common_schemas.property_schema import (
     ResidentialPropertyRequestSchema, 
     CommercialPropertyRequestSchema,
-    FarmPropertyRequestSchema
+    FarmPropertyRequestSchema,
 )
 router = APIRouter(
     prefix="/api/v1",
@@ -219,5 +219,23 @@ def get_similar_properties(region_id:str, page_number:int, per_page:int):
 def change_property_status(property_id:str, status:str, token: str = Depends(oauth2_scheme)):
     logger.debug("Inside Change Property Status Router")
     response = customer_property_service.change_property_status(property_id=property_id, status=status, token=token)
+    logger.debug("Returning From the Change Property Status Router")
+    return response
+
+@router.get("/filter-properties")
+def filter_properties(
+    listing_type: str = Query(None, description="Listing type filter"),
+    listed_by: str = Query(None, description="Listed by filter"),
+    category: str = Query(None, description="Category filter"),
+    possession_type: str = Query(None, description="Possession type filter"),
+    price_max: float = Query(None, description="Maximum price filter"),
+    area_max: int = Query(None, description="Maximum area filter"),
+    region_id: str = Query(None, description="Region ID filter"),
+    roi_percentage_max: int = Query(None, description="Maximum ROI percentage filter"),
+    page_number: int = Query(1, ge=1, description="Page number starting from 1"),
+    per_page: int = Query(10, le=50, description="Number of items per page (max: 50)")
+):
+    logger.debug("Inside Filter Property Router")
+    response = customer_property_service.get_filtered_properties(listing_type, listed_by,category,possession_type,price_max,area_max,region_id,roi_percentage_max, page_number, per_page)
     logger.debug("Returning From the Change Property Status Router")
     return response

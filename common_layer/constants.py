@@ -166,6 +166,9 @@ IFSC_CODE="ifsc_code"
 IS_PRIMARY_ACCOUNT="is_primary"
 AADHAR_NUMBER="aadhar_number"
 PAN_NUMBER="pan_number"
+ROI_PERCENTAGE="roi_percentage"
+POSSESSOION_TYPE_FIELD= "possession_type"
+LISTING_TYPE_FIELD="listing_type"
 
 
 # Messages
