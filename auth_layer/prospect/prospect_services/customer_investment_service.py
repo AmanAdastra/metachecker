@@ -136,10 +136,10 @@ def get_user_wallet(token):
                 "portfolio_balance": portfolio_balance,
                 "investment_balance": investment_balance,
                 "day_change":day_change,
-                "day_change_percent":day_change_percent,
+                "day_change_percent":day_change_percent * 100,
                 "avg_roi": avg_roi,
                 "total_change":total_change,
-                "total_change_percent":total_change_percent
+                "total_change_percent":total_change_percent * 100
             },
             status_code=HTTPStatus.OK,
         )
