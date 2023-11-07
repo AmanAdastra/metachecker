@@ -1250,6 +1250,7 @@ def get_list_of_top_properties(
                 },
                 {
                     constants.INDEX_ID: 1,
+                    constants.PROJECT_TITLE_FIELD: 1,
                     constants.IMAGES_FIELD: 1,
                     constants.PRICE_FIELD: 1,
                     constants.ADDRESS_FIELD: 1,
@@ -1278,6 +1279,8 @@ def get_list_of_top_properties(
                     constants.ADDRESS_FIELD: property[constants.ADDRESS_FIELD],
                     constants.PRICE_FIELD: property[constants.PRICE_FIELD],
                     constants.LOCATION_FIELD: property[constants.LOCATION_FIELD],
+                    constants.PROJECT_TITLE_FIELD: property[constants.PROJECT_TITLE_FIELD],
+
                 }
             )
 
