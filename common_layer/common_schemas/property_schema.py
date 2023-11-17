@@ -102,10 +102,13 @@ Residential Property Request Schema:
     roi_percentage: float
 
 """
+
+
 class PropertyStatus(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     SOLD = "sold"
+
 
 class PropertyAnalyticsSchema(BaseModel):
     user_id: str
@@ -113,12 +116,14 @@ class PropertyAnalyticsSchema(BaseModel):
     view_count: int
     timestamp: float = time.time()
 
+
 class PropertyDailyViewCountSchema(BaseModel):
     property_id: str
     view_count: int
     user_id: str
     data: str
     timestamp: float = time.time()
+
 
 class LocationSchema(BaseModel):
     latitude: float
@@ -166,10 +171,12 @@ class ResidentialType(str, Enum):
     FARM_HOUSE = "farm_house"
     HOUSES_AND_VILLA = "houses_and_villa"
 
+
 class CommercialType(str, Enum):
     SHOPS = "shops"
     OFFICES = "offices"
     OTHERS = "others"
+
 
 class FarmType(str, Enum):
     FARM_LANDS = "farm_lands"
@@ -236,7 +243,6 @@ class PropertySchema(CustomBaseSchema):
     project_document: Optional[str] = ""
     document_title: Optional[str] = ""
     brochure_title: Optional[str] = ""
-
 
     @validator("listing_type")
     def validate_listing_type(cls, value):
@@ -519,7 +525,6 @@ class CommercialPropertySchema(CustomBaseSchema):
         return value
 
 
-
 class CandleData(BaseModel):
     timestamp: float = time.time()
     price: float
@@ -530,6 +535,14 @@ class CandleDataSchema(CustomBaseSchema):
     property_gain: float
     candle_data: list[CandleData]
 
+
 class UpdateCandleDataSchema(BaseModel):
     property_id: str
     candle_data: list[CandleData]
+
+
+class FavoritePropertySchema(BaseModel):
+    user_id: str
+    property_ids: list
+    created_at: float = time.time()
+    updated_at: float = time.time()

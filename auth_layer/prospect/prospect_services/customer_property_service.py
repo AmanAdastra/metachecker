@@ -41,6 +41,7 @@ from common_layer.common_schemas.property_schema import (
     PropertyStatus,
     PropertyAnalyticsSchema,
     PropertyDailyViewCountSchema,
+    FavoritePropertySchema,
 )
 
 
@@ -1279,8 +1280,9 @@ def get_list_of_top_properties(
                     constants.ADDRESS_FIELD: property[constants.ADDRESS_FIELD],
                     constants.PRICE_FIELD: property[constants.PRICE_FIELD],
                     constants.LOCATION_FIELD: property[constants.LOCATION_FIELD],
-                    constants.PROJECT_TITLE_FIELD: property[constants.PROJECT_TITLE_FIELD],
-
+                    constants.PROJECT_TITLE_FIELD: property[
+                        constants.PROJECT_TITLE_FIELD
+                    ],
                 }
             )
 
@@ -2438,11 +2440,13 @@ def get_filtered_properties(
                 ],
                 constants.CREATED_AT_FIELD: data[constants.CREATED_AT_FIELD],
                 constants.LOCATION_FIELD: data[constants.LOCATION_FIELD],
-                constants.LISTED_BY_FIELD:data[constants.LISTED_BY_FIELD],
-                constants.CATEGORY_FIELD:data[constants.CATEGORY_FIELD],
-                constants.ROI_PERCENTAGE:data[constants.ROI_PERCENTAGE],
-                constants.LISTING_TYPE_FIELD:data[constants.LISTING_TYPE_FIELD],
-                constants.POSSESSOION_TYPE_FIELD:data[constants.POSSESSOION_TYPE_FIELD]
+                constants.LISTED_BY_FIELD: data[constants.LISTED_BY_FIELD],
+                constants.CATEGORY_FIELD: data[constants.CATEGORY_FIELD],
+                constants.ROI_PERCENTAGE: data[constants.ROI_PERCENTAGE],
+                constants.LISTING_TYPE_FIELD: data[constants.LISTING_TYPE_FIELD],
+                constants.POSSESSOION_TYPE_FIELD: data[
+                    constants.POSSESSOION_TYPE_FIELD
+                ],
             }
             response_data.append(response_dict)
         document_count = property_details_collection.count_documents(filter_query)
@@ -2466,4 +2470,138 @@ def get_filtered_properties(
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     logger.debug("Returning From the Get Filtered Property Service")
+    return response
+
+
+def add_customer_favorite_property(
+    property_id: str,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside Add Customer Favorite Property Service")
+    try:
+        token = token_decoder(token)
+        user_id = token.get(constants.ID)
+        customer_property_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+
+        if not customer_property_collection.find_one(
+            {constants.INDEX_ID: ObjectId(property_id)}
+        ):
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Property Id does not found"},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+
+        customer_favorite_property_collection = db[
+            constants.CUSTOMER_FAVORITE_PROPERTY_SCHEMA
+        ]
+
+        existing_favorite_property = customer_favorite_property_collection.find_one(
+            {constants.USER_ID_FIELD: user_id}
+        )
+
+        if not existing_favorite_property:
+            index = jsonable_encoder(
+                FavoritePropertySchema(user_id=user_id, property_ids=[property_id])
+            )
+            customer_favorite_property_collection.insert_one(index)
+        else:
+            updated_properties = existing_favorite_property.get("property_ids", []) + [
+                property_id
+            ]
+            customer_favorite_property_collection.find_one_and_update(
+                {constants.USER_ID_FIELD: user_id},
+                {"$set": {"property_ids": updated_properties}},
+            )
+
+        logger.debug(f"Add Customer Favorite Property {property_id}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={constants.MESSAGE: "Customer Favorite Property Added Successfully"},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Add Customer Favorite Property Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Add Customer Favorite Property Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Add Customer Favorite Property Service")
+    return response
+
+
+def remove_customer_favorite_property(
+    property_id: str,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside Remove Customer Favorite Property Service")
+    try:
+        token = token_decoder(token)
+        user_id = token.get(constants.ID)
+        customer_favorite_property_collection = db[
+            constants.CUSTOMER_FAVORITE_PROPERTY_SCHEMA
+        ]
+        customer_property_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+
+        if not customer_property_collection.find_one(
+            {constants.INDEX_ID: ObjectId(property_id)}
+        ):
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Property Id does not found"},
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+
+        existing_favorite_property = customer_favorite_property_collection.find_one(
+            {constants.USER_ID_FIELD: user_id}
+        )
+
+        if existing_favorite_property:
+            updated_properties = [
+                prop
+                for prop in existing_favorite_property.get("property_ids", [])
+                if prop != property_id
+            ]
+
+            if updated_properties:
+                customer_favorite_property_collection.find_one_and_update(
+                    {constants.USER_ID_FIELD: user_id},
+                    {"$set": {"property_ids": updated_properties}},
+                )
+            else:
+                # If there are no more properties in the list, remove the document
+                customer_favorite_property_collection.delete_one(
+                    {constants.USER_ID_FIELD: user_id}
+                )
+
+            logger.debug(f"Remove Customer Favorite Property {property_id}")
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_SUCCESS,
+                data={
+                    constants.MESSAGE: "Customer Favorite Property Removed Successfully"
+                },
+                status_code=HTTPStatus.OK,
+            )
+        else:
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Property not found in customer's favorites"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+
+    except Exception as e:
+        logger.error(f"Error in Remove Customer Favorite Property Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Remove Customer Favorite Property Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Remove Customer Favorite Property Service")
     return response

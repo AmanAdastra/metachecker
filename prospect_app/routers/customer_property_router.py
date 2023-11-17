@@ -239,3 +239,17 @@ def filter_properties(
     response = customer_property_service.get_filtered_properties(listing_type, listed_by,category,possession_type,price_max,area_max,region_id,roi_percentage_max, page_number, per_page)
     logger.debug("Returning From the Change Property Status Router")
     return response
+
+@router.post("/add-customer-favorite-property")
+def add_customer_favorite_property(property_id:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Add Customer Favorite Property Router")
+    response = customer_property_service.add_customer_favorite_property(property_id=property_id,  token=token)
+    logger.debug("Returning From the Add Customer Favorite Property Router")
+    return response
+
+@router.put("/remove-customer-favorite-property")
+def remove_customer_favorite_property(property_id:str, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Remove Customer Favorite Property Router")
+    response = customer_property_service.remove_customer_favorite_property(property_id=property_id,  token=token)
+    logger.debug("Returning From the Remove Customer Favorite Property Router")
+    return response

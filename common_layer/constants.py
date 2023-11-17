@@ -94,6 +94,7 @@ CUSTOMER_DAILY_PROPERTY_ANALYTICS_SCHEMA = "customer_daily_property_analytics"
 CUSTOMER_BANK_DETAILS_SCHEMA = "customer_bank_details_schema"
 CUSTOMER_KYC_DETAILS_SCHEMA = "kyc_details_schema"
 PORTFOLIO_ANALYSIS_SCHEMA = "portfolio_analysis"
+CUSTOMER_FAVORITE_PROPERTY_SCHEMA = "customer_favorite_schema"
 
 # Schemas Fields
 STATUS_FIELD = "status"
