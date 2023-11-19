@@ -95,6 +95,7 @@ CUSTOMER_BANK_DETAILS_SCHEMA = "customer_bank_details_schema"
 CUSTOMER_KYC_DETAILS_SCHEMA = "kyc_details_schema"
 PORTFOLIO_ANALYSIS_SCHEMA = "portfolio_analysis"
 CUSTOMER_FAVORITE_PROPERTY_SCHEMA = "customer_favorite_schema"
+NOTIFICATION_DETAILS_SCHEMA = "notification_details"
 
 # Schemas Fields
 STATUS_FIELD = "status"
@@ -173,6 +174,7 @@ PAN_NUMBER="pan_number"
 ROI_PERCENTAGE="roi_percentage"
 POSSESSOION_TYPE_FIELD= "possession_type"
 LISTING_TYPE_FIELD="listing_type"
+IS_READ="is_read"
 
 
 # Messages
@@ -208,6 +210,9 @@ DELETE_PRIMARY_ACCOUNT = "You can not delete Primary Account"
 RECORD_DOES_NOT_FOUND="Record does not found"
 AADHAR_ALREADY_EXIST="Aadhar Number already Exist"
 PAN_NUMBER_ALREADY_EXIST="Pan Number Already Exist"
+NOTIFICATION_STATUS_UPDATED="Notification Status Updated Successfully"
+NOTIFICATION_ADDED="Notification Added Successfully"
+NOTIFICATIONS="notifications"
 # Response Keys
 USER_DETAILS = "user_details"
 MESSAGE = "message"

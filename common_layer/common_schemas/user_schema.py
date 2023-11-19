@@ -100,3 +100,11 @@ class AdminUserLogin(BaseModel):
         json_schema_extra = {
             "example": {"email_id": "johndoe@mailinator.com", "password": "Test@123"}
         }
+class NotificationDetails(BaseModel):
+    user_id: str
+    source_type: str
+    title: str
+    body: str
+    is_read: bool = False
+    created_at: float = time.time()
+    updated_at: float = time.time()

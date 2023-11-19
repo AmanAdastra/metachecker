@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, UploadFile, File
+from fastapi import APIRouter, Depends, Form, UploadFile, File, Query
 from common_layer.common_schemas import user_schema
 from logging_module import logger
 from pydantic import EmailStr
@@ -224,4 +224,45 @@ def get_welcome_card_info():
     logger.debug("Inside Get Welcome Card Info Router")
     response = admin_ads_management_service.get_welcome_card_info()
     logger.debug("Returning From the Get Welcome Card Info Router")
+    return response
+
+
+@router.get("/get-notifications")
+def get_notifications(
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside Get Notifications Router")
+    response = customer_management_service.get_notifications(token)
+    logger.debug("Returning From the Get Notifications Router")
+    return response
+
+@router.get("/get-notification-count")
+def get_notification_count(
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside Get Notification Count Router")
+    response = customer_management_service.get_notification_count(token)
+    logger.debug("Returning From the Get Notification Count Router")
+    return response
+
+@router.put("/update-notification-status")
+def update_notification_status(
+    notification_id: str,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside Update Notification Status Router")
+    response = customer_management_service.update_notification_status(notification_id, token)
+    logger.debug("Returning From the Update Notification Status Router")
+    return response
+
+@router.post("/add-notification")
+def add_notifications(
+    source_type: Annotated[str, Query(..., regex="^(buy|sell|deposit|withdrawal|other)$")],
+    title: str,
+    body: str,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside Add Notification Router")
+    response = customer_management_service.add_notifications(source_type, title, body, token)
+    logger.debug("Returning From the Add Notification Router")
     return response
