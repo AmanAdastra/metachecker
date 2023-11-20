@@ -253,3 +253,10 @@ def remove_customer_favorite_property(property_id:str, token: str = Depends(oaut
     response = customer_property_service.remove_customer_favorite_property(property_id=property_id,  token=token)
     logger.debug("Returning From the Remove Customer Favorite Property Router")
     return response
+
+@router.post("/get-customer-favorite-property")
+def add_customer_favorite_property(page_number:int, per_page:int, token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Customer Favorite Property Router")
+    response = customer_property_service.get_customer_bookmarks(page_number=page_number,per_page=per_page,  token=token)
+    logger.debug("Returning From the Get Customer Favorite Property Router")
+    return response

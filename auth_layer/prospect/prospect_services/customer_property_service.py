@@ -2605,3 +2605,86 @@ def remove_customer_favorite_property(
         )
     logger.debug("Returning From the Remove Customer Favorite Property Service")
     return response
+
+def get_customer_bookmarks(
+    page_number,
+    per_page,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    try:
+        skip = (page_number - 1) * per_page
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        customer_favorite_property_collection = db[
+            constants.CUSTOMER_FAVORITE_PROPERTY_SCHEMA
+        ]
+        token = token_decoder(token)
+        user_id = token.get(constants.ID)
+        customer_favorite_property = customer_favorite_property_collection.find_one(
+            {constants.USER_ID_FIELD: user_id}
+        )
+        if not customer_favorite_property:
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "No Bookmarks Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        property_ids = customer_favorite_property.get("property_ids", [])
+        if not property_ids:
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "No Bookmarks Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        property_ids = list(map(lambda x: ObjectId(x), property_ids))
+        properties = list(
+            property_details_collection.find(
+                {constants.INDEX_ID: {"$in": property_ids}}
+            )
+            .skip(skip)
+            .limit(per_page)
+        )
+        response_data = []
+
+        for data in properties:
+            response_dict = {
+                constants.ID: str(data[constants.INDEX_ID]),
+                constants.PROJECT_TITLE_FIELD: data[constants.PROJECT_TITLE_FIELD],
+                constants.PRICE_FIELD: data[constants.PRICE_FIELD],
+                constants.IMAGES_FIELD: [
+                    core_cloudfront.cloudfront_sign(image_key)
+                    for image_key in data[constants.IMAGES_FIELD][:1]
+                ],
+                constants.CREATED_AT_FIELD: data[constants.CREATED_AT_FIELD],
+                constants.LOCATION_FIELD: data[constants.LOCATION_FIELD],
+                constants.LISTED_BY_FIELD: data[constants.LISTED_BY_FIELD],
+                constants.CATEGORY_FIELD: data[constants.CATEGORY_FIELD],
+                constants.ROI_PERCENTAGE: data[constants.ROI_PERCENTAGE],
+                constants.LISTING_TYPE_FIELD: data[constants.LISTING_TYPE_FIELD],
+                constants.POSSESSOION_TYPE_FIELD: data[
+                    constants.POSSESSOION_TYPE_FIELD
+                ],
+            }
+            response_data.append(response_dict)
+        document_count = property_details_collection.count_documents({constants.INDEX_ID: {"$in": property_ids}})
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={
+                "response_data": response_data,
+                "document_count": document_count,
+                "page_number": page_number,
+                "per_page": per_page,
+            },
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get Customer Bookmarks Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Customer Bookmarks Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Customer Bookmarks Service")
+    return response
