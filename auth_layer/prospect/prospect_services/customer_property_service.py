@@ -2688,3 +2688,51 @@ def get_customer_bookmarks(
         )
     logger.debug("Returning From the Get Customer Bookmarks Service")
     return response
+
+
+def get_customer_bookmarks_ids(
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    try:
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        customer_favorite_property_collection = db[
+            constants.CUSTOMER_FAVORITE_PROPERTY_SCHEMA
+        ]
+        token = token_decoder(token)
+        user_id = token.get(constants.ID)
+        customer_favorite_property = customer_favorite_property_collection.find_one(
+            {constants.USER_ID_FIELD: user_id}
+        )
+        if not customer_favorite_property:
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "No Bookmarks Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        property_ids = customer_favorite_property.get("property_ids", [])
+        if not property_ids:
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "No Bookmarks Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={
+                "response_data": property_ids,
+            },
+            status_code=HTTPStatus.OK,
+        )
+
+    except Exception as e:
+        logger.error(f"Error in Get Customer Bookmarks Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Customer Bookmarks Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Customer Bookmarks Service")
+    return response

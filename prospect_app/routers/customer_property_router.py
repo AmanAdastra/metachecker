@@ -260,3 +260,10 @@ def get_customer_favorite_property(page_number:int, per_page:int, token: str = D
     response = customer_property_service.get_customer_bookmarks(page_number=page_number,per_page=per_page,  token=token)
     logger.debug("Returning From the Get Customer Favorite Property Router")
     return response
+
+@router.get("/get-customer-favorite-property-ids")
+def get_customer_favorite_property_ids(token: str = Depends(oauth2_scheme)):
+    logger.debug("Inside Get Customer Favorite Property Bookmarks Router")
+    response = customer_property_service.get_customer_bookmarks_ids( token=token)
+    logger.debug("Returning From the Get Customer Favorite Property Bookmarks Router")
+    return response
