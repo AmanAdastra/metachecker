@@ -1,15 +1,20 @@
 from datetime import timedelta
 import time
+import requests
 from http import HTTPStatus
 from common_layer import constants
 from common_layer.common_schemas import user_schema
 from database import db
+from fastapi import UploadFile, Depends, Request
+from typing import Annotated
 from admin_app.logging_module import logger
 from common_layer.common_services.oauth_handler import (
     create_access_token,
     create_refresh_token,
     Hash,
+    oauth2_scheme,
 )
+from common_layer.common_services.utils import templates
 from common_layer import roles
 
 
@@ -42,7 +47,7 @@ def login_user(
             status_code=HTTPStatus.FORBIDDEN,
         )
         return response
-    
+
     if user_details[constants.USER_TYPE_FIELD] == user_schema.UserTypes.CUSTOMER.value:
         response = user_schema.ResponseMessage(
             type=constants.HTTP_RESPONSE_FAILURE,
@@ -89,12 +94,14 @@ def login_user(
             constants.ACCESS_TOKEN: access_token,
             constants.REFRESH_TOKEN: refresh_token,
             constants.USER_DETAILS: user_details,
-            constants.ROLES_AND_PERMISSIONS: roles.permissions.get(user_details[constants.USER_TYPE_FIELD]),
-
+            constants.ROLES_AND_PERMISSIONS: roles.permissions.get(
+                user_details[constants.USER_TYPE_FIELD]
+            ),
         },
         status_code=HTTPStatus.ACCEPTED,
     )
     return response
+
 
 def get_users_list():
     logger.debug("Get Users List process started")
@@ -110,3 +117,62 @@ def get_users_list():
         status_code=HTTPStatus.ACCEPTED,
     )
     return response
+
+
+# Upload Terms and Conditions Pdf into s3 bucket
+
+
+def upload_terms_or_policy_txt_file(source_type, html_text, token):
+    logger.debug("Upload Terms Or Policy Txt File process started")
+    try:
+        terms_and_policy_collection = db[constants.TERMS_AND_POLICY_SCHEMA]
+
+        terms_and_policy_record = terms_and_policy_collection.find_one(
+            {constants.SOURCE_TYPE_FIELD: source_type}
+        )
+        if terms_and_policy_record is None:
+            terms_and_policy_collection.insert_one(
+                {
+                    "source_type": source_type,
+                    "html_text": html_text,
+                    constants.CREATED_AT_FIELD: time.time(),
+                }
+            )
+        else:
+            terms_and_policy_collection.find_one_and_update(
+                {constants.SOURCE_TYPE_FIELD: source_type},
+                {
+                    constants.UPDATE_INDEX_DATA: {
+                        "html_text": html_text,
+                        constants.UPDATED_AT_FIELD: time.time(),
+                    }
+                },
+            )
+        response = user_schema.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={constants.MESSAGE:"Terms and Policy updated successfully"},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(str(e))
+        response = user_schema.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={"message": "Error while uploading txt file"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    return response
+
+def terms_and_policy_render(request, source_type):
+    terms_and_policy_collection = db[constants.TERMS_AND_POLICY_SCHEMA]
+    terms_and_policy_record = terms_and_policy_collection.find_one(
+        {constants.SOURCE_TYPE_FIELD: source_type}
+    )
+    if terms_and_policy_record is None:
+        response = user_schema.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={"message": "No record found"},
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+        return response
+    html_text = terms_and_policy_record.get("html_text")
+    return templates.TemplateResponse("privacy_policy.html", {"request": request, "source_type": source_type,"html_text":html_text})

@@ -16,6 +16,9 @@ import hashlib
 import io
 from core_layer.aws_s3 import s3
 from common_layer.common_schemas.user_schema import ResponseMessage
+from fastapi.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory="templates")
 
 
 def token_decoder(token):

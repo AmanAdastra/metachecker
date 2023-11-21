@@ -49,7 +49,9 @@ S3_KEY = "Key"
 JPEG_CONTENT_TYPE = "image/jpeg"
 IMAGE_TYPE = "jpeg"
 PDF_CONTENT_TYPE = "application/pdf"
+TXT_CONTENT_TYPE = "text/plain"
 PDF_TYPE = "pdf"
+TXT_TYPE = "txt"
 # AWS Cloudfront Configuration
 AWS_CLOUDFRONT_KEY_ID = os.getenv("AWS_CLOUDFRONT_KEY_ID")
 AWS_CLOUDFRONT_PRIVATE_KEY = os.getenv("AWS_CLOUDFRONT_PRIVATE_KEY")
@@ -64,6 +66,7 @@ PROPERTY_IMAGES_BASE = "property_images"
 PROJECT_LOGO_BASE = "project_logo"
 ADS_IMAGES_BASE = "ads_images"
 PROPERTY_DOCUMENT_BASE = "property_documents"
+TERMS_AND_POLICY_BASE = "terms_and_policy"
 
 
 # Firebase
@@ -96,6 +99,7 @@ CUSTOMER_KYC_DETAILS_SCHEMA = "kyc_details_schema"
 PORTFOLIO_ANALYSIS_SCHEMA = "portfolio_analysis"
 CUSTOMER_FAVORITE_PROPERTY_SCHEMA = "customer_favorite_schema"
 NOTIFICATION_DETAILS_SCHEMA = "notification_details"
+TERMS_AND_POLICY_SCHEMA = "terms_and_policy"
 
 # Schemas Fields
 STATUS_FIELD = "status"
@@ -175,6 +179,7 @@ ROI_PERCENTAGE="roi_percentage"
 POSSESSOION_TYPE_FIELD= "possession_type"
 LISTING_TYPE_FIELD="listing_type"
 IS_READ="is_read"
+SOURCE_TYPE_FIELD = "source_type"
 
 
 # Messages

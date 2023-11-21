@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from common_layer.common_services.oauth_handler import oauth2_scheme
 from logging_module import logger
@@ -8,6 +8,7 @@ from common_layer.common_services import user_management_service, utils
 from common_layer.common_schemas import user_schema
 from common_layer import constants
 from auth_layer.admin.admin_services import admin_user_management_service
+from fastapi.responses import HTMLResponse
 
 
 router = APIRouter(
@@ -56,6 +57,7 @@ def login_user(
     logger.debug("Returning from the Login User Router")
     return response
 
+
 @router.get("/get-user-details")
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     logger.debug("Inside Get User Details Router")
@@ -80,7 +82,9 @@ def check_user_exist(mobile_number: str):
     return response
 
 
-@router.post("/post-profile-picture", dependencies=[Depends(utils.valid_content_length)])
+@router.post(
+    "/post-profile-picture", dependencies=[Depends(utils.valid_content_length)]
+)
 def post_profile_picture(
     profile_image: UploadFile = File(...),
     token: Annotated[str, Depends(oauth2_scheme)] = None,
@@ -106,7 +110,6 @@ def get_profile_picture(
     return response
 
 
-
 @router.put("/update-mobile-number")
 def update_mobile_number(
     mobile_number: str,
@@ -117,6 +120,7 @@ def update_mobile_number(
     response = user_management_service.update_mobile_number(mobile_number, token)
     logger.debug("Returning from the Update Mobile Number Router")
     return response
+
 
 @router.put("/update-email-id")
 def update_email_id(
@@ -129,6 +133,7 @@ def update_email_id(
     logger.debug("Returning from the Update Email Id Router")
     return response
 
+
 @router.put("/change-password")
 def change_password(
     old_password: str,
@@ -137,9 +142,12 @@ def change_password(
 ):
     logger.debug("Inside the Change Password Router")
 
-    response = user_management_service.change_password(old_password, new_password, token)
+    response = user_management_service.change_password(
+        old_password, new_password, token
+    )
     logger.debug("Returning from the Change Password Router")
     return response
+
 
 @router.put("/convert-investor-to-customer")
 def convert_investor_to_customer(
@@ -151,6 +159,7 @@ def convert_investor_to_customer(
     logger.debug("Returning from the Convert Investor To Customer Router")
     return response
 
+
 @router.get("/get-users-list")
 def get_users_list(
     token: Annotated[str, Depends(oauth2_scheme)],
@@ -161,6 +170,7 @@ def get_users_list(
     logger.debug("Returning from the Get Users List Router")
     return response
 
+
 @router.put("/reset-password")
 def reset_password(
     email_id: EmailStr,
@@ -170,4 +180,18 @@ def reset_password(
 
     response = user_management_service.reset_admin_password(email_id, password)
     logger.debug("Returning from the Reset Password Router")
+    return response
+
+@router.post("/upload-terms-or-policy-txt-file")
+def upload_terms_or_policy_txt_file(
+    source_type: Annotated[str, Query(..., regex="^(terms|policy)$")],
+    html_text: str = Form(...),
+    token: Annotated[str, Depends(oauth2_scheme)] = None,
+):
+    logger.debug("Inside the Upload Terms Or Policy Txt File Router")
+
+    response = admin_user_management_service.upload_terms_or_policy_txt_file(
+        source_type, html_text, token
+    )
+    logger.debug("Returning from the Upload Terms Or Policy Txt File Router")
     return response
