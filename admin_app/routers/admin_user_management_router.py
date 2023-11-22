@@ -195,3 +195,13 @@ def upload_terms_or_policy_txt_file(
     )
     logger.debug("Returning from the Upload Terms Or Policy Txt File Router")
     return response
+
+@router.get("/get-terms-or-policy-html-text")
+def get_terms_or_policy_html_text(
+    source_type: Annotated[str, Query(..., regex="^(terms|policy)$")],
+):
+    logger.debug("Inside the Get Terms Or Policy Html Text Router")
+
+    response = admin_user_management_service.get_terms_or_policy_html_text(source_type)
+    logger.debug("Returning from the Get Terms Or Policy Html Text Router")
+    return response

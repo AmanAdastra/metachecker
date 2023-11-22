@@ -176,3 +176,32 @@ def terms_and_policy_render(request, source_type):
         return response
     html_text = terms_and_policy_record.get("html_text")
     return templates.TemplateResponse("privacy_policy.html", {"request": request, "source_type": source_type,"html_text":html_text})
+
+
+def get_terms_or_policy_html_text(source_type):
+    try:
+        terms_and_policy_collection = db[constants.TERMS_AND_POLICY_SCHEMA]
+        terms_and_policy_record = terms_and_policy_collection.find_one(
+            {constants.SOURCE_TYPE_FIELD: source_type}
+        )
+        if terms_and_policy_record is None:
+            response = user_schema.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={"message": "No record found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        html_text = terms_and_policy_record.get("html_text")
+        response = user_schema.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"html_text": html_text},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(str(e))
+        response = user_schema.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={"message": "Error while getting html text"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    return response
