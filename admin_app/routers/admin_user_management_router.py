@@ -65,6 +65,13 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     logger.debug("Returning From the Get User Details Router")
     return response
 
+@router.get("/get-user-details-by-id")
+def get_user_details_by_id(user_id: str, token: Annotated[str, Depends(oauth2_scheme)]):
+    logger.debug("Inside Get User Details By Id Router")
+    response = user_management_service.get_user_details_by_id(user_id, token)
+    logger.debug("Returning From the Get User Details By Id Router")
+    return response
+
 
 @router.post("/refresh-access-token")
 def refresh_access_token(refresh_token: str = Form(...)):

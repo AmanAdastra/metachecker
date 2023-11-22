@@ -858,3 +858,43 @@ def reset_admin_password(email_id: str, password: str):
             status_code=HTTPStatus.BAD_REQUEST,
         )
         return response
+
+def get_user_details_by_id(user_id, token):
+    logger.debug("Inside Get User Details By Id Endpoint")
+    token_details = token_decoder(token)
+    try:
+        user_collection = db[constants.USER_DETAILS_SCHEMA]
+        user_details = user_collection.find_one({constants.INDEX_ID: ObjectId(user_id)})
+        if user_details is None:
+            response = user_schema.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: constants.USER_NOT_FOUND},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        user_details.pop(constants.PASSWORD_FIELD)
+        user_details.pop(constants.SECURE_PIN_FIELD)
+
+        user_details[constants.PROFILE_PICTURE_FIELD] = core_cloudfront.cloudfront_sign(
+            user_details.get(constants.PROFILE_PICTURE_FIELD)
+        )
+
+        user_details[constants.ID] = str(user_details.get(constants.INDEX_ID))
+        user_details.pop(constants.INDEX_ID)
+
+        response = user_schema.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={constants.MESSAGE: "User Details Fetched Successfully",
+                  constants.USER_DETAILS: user_details},
+            status_code=HTTPStatus.ACCEPTED,
+        )
+        return response
+    
+    except Exception as e:
+        response = user_schema.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: "User Details Fetch Failed"},
+            status_code=HTTPStatus.BAD_REQUEST,
+        )
+        return response
+        
