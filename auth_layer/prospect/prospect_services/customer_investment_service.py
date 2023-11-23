@@ -9,6 +9,7 @@ from bson import ObjectId
 from fastapi.encoders import jsonable_encoder
 from common_layer.common_schemas.user_schema import ResponseMessage
 from core_layer.aws_cloudfront.core_cloudfront import cloudfront_sign
+from auth_layer.prospect.prospect_services import customer_management_service
 from auth_layer.prospect.prospect_schemas.customer_investment_schema import (
     CustomerSharesInDb,
     CustomerTransactionSchemaInDB,
@@ -204,6 +205,7 @@ def add_balance(token, amount):
             seconds=0,
             extra={},
         )
+        customer_management_service.add_notifications("deposit", "Deposit", f"{amount} Rs Deposited in your wallet.", "wallet",  token)
     except Exception as e:
         logger.error(f"Error in Add Balance Service: {e}")
         response = ResponseMessage(
@@ -268,6 +270,7 @@ def withdraw_balance(token, amount):
         )
 
         customer_fiat_collection.insert_one(fiat_record)
+        customer_management_service.add_notifications("withdraw", "Withdraw", f"{amount} Rs Withdrawn from your wallet.", "wallet",  token)
 
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
@@ -492,6 +495,8 @@ def buy_investment_share(token, quantity, property_id):
         )
 
         customer_fiat_collection.insert_one(fiat_record)
+        body = f"{quantity} shares of {property_details.get('project_title')} bought successfully."
+        customer_management_service.add_notifications("buy", "Buy", body, property_id,  token)
 
         del user_wallet["_id"]
         response = ResponseMessage(
@@ -627,6 +632,8 @@ def sell_investment_share(token, quantity, property_id):
         )
 
         customer_fiat_collection.insert_one(fiat_record)
+        body = f"{quantity} shares of {property_details.get('project_title')} sold successfully."
+        customer_management_service.add_notifications("sell", "Sell", body, property_id,  token)
 
         del user_wallet["_id"]
         response = ResponseMessage(

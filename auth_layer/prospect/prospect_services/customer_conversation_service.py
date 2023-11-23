@@ -8,6 +8,7 @@ from http import HTTPStatus
 from bson import ObjectId
 from fastapi.encoders import jsonable_encoder
 from core_layer.aws_cloudfront.core_cloudfront import cloudfront_sign
+from auth_layer.prospect.prospect_services import customer_management_service
 from auth_layer.prospect.prospect_schemas.customer_conversation_schema import (
     ResponseMessage,
     CustomerConversationInDB,
@@ -281,6 +282,9 @@ def chat_with_customer(conversation_id: str, message: str, token: str):
                 }
             },
         )
+
+        if len(customer_conversation.get(constants.MESSAGE,[])) == 0:
+            customer_management_service.add_notifications("chat", "New Message", "You have a new message", "chat", user_id)
 
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,

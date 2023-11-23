@@ -17,6 +17,7 @@ from common_layer.common_services.utils import (
 )
 from common_layer.common_schemas.user_schema import UserTypes
 from auth_layer.admin.admin_schemas import admin_property_management_schemas
+from auth_layer.prospect.prospect_services import customer_management_service
 from common_layer.common_services.oauth_handler import oauth2_scheme
 from core_layer.aws_s3 import s3
 from core_layer.aws_cloudfront import core_cloudfront
@@ -370,6 +371,8 @@ def add_residential_property(
         logger.debug(
             f"Residential Property Added Successfully at Index {residential_index.inserted_id}"
         )
+        customer_management_service.add_notifications("property", "Residential Property", "Property Listed Successfully", str(property_index.inserted_id), token)
+
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={
@@ -576,6 +579,9 @@ def add_commercial_property(
             f"Commercial Property Added Successfully at Index {commercial_index.inserted_id}"
         )
 
+        customer_management_service.add_notifications("property", "Commercial Property", "Property Listed Successfully", str(property_index.inserted_id), token)
+
+
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={
@@ -772,6 +778,8 @@ def add_farm_property(
         logger.debug(
             f"Farm Property Added Successfully at Index {farm_index.inserted_id}"
         )
+
+        customer_management_service.add_notifications("property", "Farm Property", "Property Listed Successfully", str(property_index.inserted_id), token)
 
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,

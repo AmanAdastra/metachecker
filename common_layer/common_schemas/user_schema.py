@@ -106,5 +106,6 @@ class NotificationDetails(BaseModel):
     title: str
     body: str
     is_read: bool = False
+    redirection: str
     created_at: float = time.time()
     updated_at: float = time.time()

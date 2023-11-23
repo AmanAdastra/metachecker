@@ -1,6 +1,7 @@
 import time
 from http import HTTPStatus
 from common_layer.common_schemas import user_schema
+from core_layer.aws_cloudfront import core_cloudfront
 from database import db
 from common_layer import constants
 from datetime import timedelta
@@ -156,7 +157,7 @@ def verify_secure_pin(mobile_number: str, code: str):
     return response
 
 
-def add_notifications(source_type, title, body, token):
+def add_notifications(source_type, title, body, redirection, token):
     logger.debug("Inside Add Notifications")
     try:
         decoded_token = token_decoder(token)
@@ -177,6 +178,7 @@ def add_notifications(source_type, title, body, token):
                 source_type=source_type,
                 title=title,
                 body=body,
+                redirection=redirection,
             )
         )
         notification_collection.insert_one(notification_index)
@@ -204,6 +206,7 @@ def get_notifications(token):
         user_id = decoded_token.get(constants.ID)
         user_collection = db[constants.USER_DETAILS_SCHEMA]
         notification_collection = db[constants.NOTIFICATION_DETAILS_SCHEMA]
+        property_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
         user_details = user_collection.find_one({constants.INDEX_ID: ObjectId(user_id)})
         if not user_details:
             response = user_schema.ResponseMessage(
@@ -220,6 +223,38 @@ def get_notifications(token):
         for notification in customer_notifications:
             notification[constants.ID] = str(notification[constants.INDEX_ID])
             del notification[constants.INDEX_ID]
+            if notification.get(constants.SOURCE_TYPE_FIELD) in [
+                "buy",
+                "sell",
+                "property",
+            ]:
+                property_id = notification.get("redirection")
+                property_details = property_collection.find_one(
+                    {constants.INDEX_ID: ObjectId(property_id)},
+                    {constants.PROJECT_LOGO_FIELD: 1},
+                )
+                if property_details:
+                    print(property_details)
+                    notification["image_url"] = core_cloudfront.cloudfront_sign(
+                        property_details[constants.PROJECT_LOGO_FIELD]
+                    )
+                else:
+                    notification["image_url"] = ""
+            elif notification.get(constants.SOURCE_TYPE_FIELD) == "chat":
+                sender_id = notification.get("redirection")
+                sender_details = user_collection.find_one(
+                    {constants.INDEX_ID: ObjectId(sender_id)},
+                    {constants.PROFILE_IMAGE_FIELD: 1},
+                )
+                if sender_details:
+                    notification["image_url"] = core_cloudfront.cloudfront_sign(
+                        sender_details[constants.PROFILE_IMAGE_FIELD]
+                    )
+                else:
+                    notification["image_url"] = ""
+            else:
+                notification["image_url"] = ""
+
             notifications.append(notification)
         response = user_schema.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,

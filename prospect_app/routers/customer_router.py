@@ -260,9 +260,10 @@ def add_notifications(
     source_type: Annotated[str, Query(..., regex="^(buy|sell|deposit|withdrawal|other)$")],
     title: str,
     body: str,
+    redirection: str,
     token: Annotated[str, Depends(oauth2_scheme)],
 ):
     logger.debug("Inside Add Notification Router")
-    response = customer_management_service.add_notifications(source_type, title, body, token)
+    response = customer_management_service.add_notifications(source_type, title, body, redirection,  token)
     logger.debug("Returning From the Add Notification Router")
     return response
