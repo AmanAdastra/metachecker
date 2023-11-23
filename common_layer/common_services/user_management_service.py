@@ -351,6 +351,8 @@ def register_user(
         mobile_number=user_request.mobile_number,
         password_confirmed=user_request.password_confirmed,
         user_type=user_request.user_type,
+        created_at=time.time(),
+        updated_at=time.time(),
     )
     collection_index = jsonable_encoder(validated_index)
     inserted_index = user_collection.insert_one(collection_index)
