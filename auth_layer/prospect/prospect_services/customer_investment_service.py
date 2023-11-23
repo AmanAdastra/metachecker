@@ -187,6 +187,8 @@ def add_balance(token, amount):
                 transaction_type=TransactionType.AMOUNT_DEPOSITED.value,
                 transaction_status="SUCCESS",
                 transaction_date=time.time(),
+                created_at=time.time(),
+                updated_at=time.time()
             )
         )
 
@@ -266,6 +268,8 @@ def withdraw_balance(token, amount):
                 transaction_type=TransactionType.AMOUNT_WITHDRAW.value,
                 transaction_status="SUCCESS",
                 transaction_date=time.time(),
+                created_at=time.time(),
+                updated_at=time.time()
             )
         )
 
@@ -476,6 +480,9 @@ def buy_investment_share(token, quantity, property_id):
             transaction_amount=quantity * current_price,
             transaction_id=str(uuid4()),
             transaction_status="SUCCESS",
+            transaction_date=time.time(),
+            created_at=time.time(),
+            updated_at=time.time()
         )
 
         transaction_index = customer_transaction_details_collection.insert_one(
@@ -613,6 +620,9 @@ def sell_investment_share(token, quantity, property_id):
             transaction_amount=quantity * current_price,
             transaction_id=str(uuid4()),
             transaction_status="SUCCESS",
+            transaction_date=time.time(),
+            created_at=time.time(),
+            updated_at=time.time()
         )
 
         customer_transaction_index = customer_transaction_details_collection.insert_one(
@@ -628,6 +638,8 @@ def sell_investment_share(token, quantity, property_id):
                 transaction_type=TransactionType.SELL_SHARES.value,
                 transaction_status="SUCCESS",
                 transaction_date=time.time(),
+                created_at=time.time(),
+                updated_at=time.time()
             )
         )
 
