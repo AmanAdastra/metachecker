@@ -179,6 +179,8 @@ def add_notifications(source_type, title, body, redirection, token):
                 title=title,
                 body=body,
                 redirection=redirection,
+                created_at=time.time(),
+                updated_at=time.time(),
             )
         )
         notification_collection.insert_one(notification_index)
@@ -199,7 +201,7 @@ def add_notifications(source_type, title, body, redirection, token):
     return response
 
 
-def get_notifications(token):
+def get_notifications(page_number, per_page, token):
     logger.debug("Inside Get Notifications")
     try:
         decoded_token = token_decoder(token)
@@ -216,9 +218,13 @@ def get_notifications(token):
             )
             return response
 
-        customer_notifications = notification_collection.find(
-            {constants.USER_ID_FIELD: user_id}
-        ).sort(constants.CREATED_AT_FIELD, -1)
+        customer_notifications = (
+            notification_collection.find({constants.USER_ID_FIELD: user_id})
+            .sort(constants.CREATED_AT_FIELD, -1)
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
+
         notifications = []
         for notification in customer_notifications:
             notification[constants.ID] = str(notification[constants.INDEX_ID])
@@ -256,9 +262,12 @@ def get_notifications(token):
                 notification["image_url"] = ""
 
             notifications.append(notification)
+        count_documents = notification_collection.count_documents(
+            {constants.USER_ID_FIELD: user_id}
+        )
         response = user_schema.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={constants.NOTIFICATIONS: notifications},
+            data={constants.NOTIFICATIONS: notifications, "total_count": count_documents, "page_number": page_number, "per_page": per_page},
             status_code=HTTPStatus.ACCEPTED,
         )
 
@@ -338,7 +347,7 @@ def update_notification_status(notification_id, token):
 
         notification_collection.find_one_and_update(
             {constants.INDEX_ID: ObjectId(notification_id)},
-            {constants.UPDATE_INDEX_DATA: {"is_read": True}},
+            {constants.UPDATE_INDEX_DATA: {"is_read": True, "updated_at": time.time()}},
         )
 
         response = user_schema.ResponseMessage(

@@ -229,10 +229,12 @@ def get_welcome_card_info():
 
 @router.get("/get-notifications")
 def get_notifications(
+    page_number: int,
+    per_page: int,
     token: Annotated[str, Depends(oauth2_scheme)],
 ):
     logger.debug("Inside Get Notifications Router")
-    response = customer_management_service.get_notifications(token)
+    response = customer_management_service.get_notifications(page_number,per_page,token)
     logger.debug("Returning From the Get Notifications Router")
     return response
 
