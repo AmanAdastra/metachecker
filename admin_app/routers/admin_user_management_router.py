@@ -212,3 +212,31 @@ def get_terms_or_policy_html_text(
     response = admin_user_management_service.get_terms_or_policy_html_text(source_type)
     logger.debug("Returning from the Get Terms Or Policy Html Text Router")
     return response
+
+@router.get("/get-users-transactions")
+def get_users_transactions(
+    page_number: int,
+    per_page: int,
+    transaction_type: Annotated[str, Query(..., regex="^(ALL|BUY|SELL)$")],
+    userid: str,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside the Get Users Transactions Router")
+
+    response = admin_user_management_service.get_customers_transactions(page_number,per_page,transaction_type, userid, token)
+    logger.debug("Returning from the Get Users Transactions Router")
+    return response
+
+@router.get("/get-users-fiat-transactions")
+def get_users_fiat_transactions(
+    page_number: int,
+    per_page: int,
+    transaction_type: Annotated[str, Query(..., regex="^(ALL|DEPOSIT|WITHDRAW)$")],
+    userid: str,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside the Get Users Fiat Transactions Router")
+
+    response = admin_user_management_service.get_customers_fiat_transactions(page_number,per_page,transaction_type, userid, token)
+    logger.debug("Returning from the Get Users Fiat Transactions Router")
+    return response

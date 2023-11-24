@@ -16,7 +16,9 @@ from common_layer.common_services.oauth_handler import (
 )
 from common_layer.common_services.utils import templates
 from common_layer import roles
-
+from bson import ObjectId
+from common_layer.common_schemas.user_schema import ResponseMessage
+from common_layer.common_services.utils import token_decoder
 
 def login_user(
     user_request: user_schema.AdminUserLogin,
@@ -87,7 +89,8 @@ def login_user(
         {constants.UPDATE_INDEX_DATA: {constants.LAST_LOGIN_AT: time.time()}},
     )
 
-    user_details[constants.INDEX_ID] = str(user_details[constants.INDEX_ID])
+    user_details[constants.ID] = str(user_details[constants.INDEX_ID])
+    del user_details[constants.INDEX_ID]
     response = user_schema.ResponseMessage(
         type=constants.HTTP_RESPONSE_SUCCESS,
         data={
@@ -204,4 +207,146 @@ def get_terms_or_policy_html_text(source_type):
             data={"message": "Error while getting html text"},
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
+    return response
+
+
+def get_customers_transactions(page_number,per_page,transaction_type, userid, token):
+    logger.debug("Inside Get Customers Transactions Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        admin_id = ObjectId(decoded_token.get(constants.ID)) 
+        customer_transaction_details_collection = db[
+            constants.CUSTOMER_TRANSACTION_SCHEMA
+        ]
+
+        filter_dict = {"user_id": (userid)}
+        if transaction_type != "ALL":
+            filter_dict["transaction_type"] = transaction_type
+        
+        customer_transaction_details = customer_transaction_details_collection.find(
+            filter_dict,
+            {
+                "_id": 1,
+                "property_id": 1,
+                "transaction_type": 1,
+                "transaction_amount": 1,
+                "transaction_quantity": 1,
+                "transaction_avg_price": 1,
+                "transaction_id": 1,
+                "transaction_status": 1,
+                "transaction_date": 1,
+            },
+        ).sort("transaction_date", -1).skip((page_number - 1) * per_page).limit(per_page)
+        if customer_transaction_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Transaction Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        customer_transaction_details = list(customer_transaction_details)
+        property_details_collection = db[constants.PROPERTY_DETAILS_SCHEMA]
+        property_ids = [
+            ObjectId(transaction.get("property_id"))
+            for transaction in customer_transaction_details
+        ]
+        property_details = property_details_collection.find(
+            {constants.INDEX_ID: {"$in": property_ids}},
+            {"project_title": 1, "_id": 1},
+        )
+
+        property_dict = {}
+        for property_detail in property_details:
+            property_dict[
+                str(property_detail.get(constants.INDEX_ID))
+            ] = property_detail.get("project_title")
+
+        transactions = []
+        for transaction in customer_transaction_details:
+            transaction["_id"] = str(transaction.get("_id"))
+            transaction["property_title"] = property_dict.get(
+                transaction.get("property_id")
+            )
+            transactions.append(transaction)
+        total_documents = customer_transaction_details_collection.count_documents(
+            filter_dict
+        )
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"transactions": transactions, "total_documents": total_documents, "page_number": page_number, "per_page": per_page},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Customers Transactions Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Customers Transactions Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Customers Transactions Service")
+    return response
+
+def get_customers_fiat_transactions(page_number,per_page,transaction_type, userid, token):
+    logger.debug("Inside Get Customers Fiat Transactions Service")
+    try:
+        print(userid)
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        admin_id = ObjectId(decoded_token.get(constants.ID))
+        customer_transaction_details_collection = db[
+            constants.CUSTOMER_FIAT_TRANSACTIONS_SCHEMA
+        ]
+
+        filter_dict = {"user_id": (userid)}
+
+        if transaction_type!= "ALL":
+            filter_dict["transaction_type"] = transaction_type
+        
+        customer_transaction_details = customer_transaction_details_collection.find(
+            filter_dict,
+            {
+                "_id": 1,
+                "transaction_type": 1,
+                "transaction_amount": 1,
+                "transaction_id": 1,
+                "transaction_status": 1,
+                "transaction_date": 1,
+            },
+        ).sort("transaction_date", -1).skip((page_number - 1) * per_page).limit(per_page)
+        if customer_transaction_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Transaction Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        customer_transaction_details = list(customer_transaction_details)
+
+        transactions = []
+        for transaction in customer_transaction_details:
+            transaction[constants.ID] = str(transaction.get("_id"))
+            del transaction["_id"]
+            transactions.append(transaction)
+
+        total_documents = customer_transaction_details_collection.count_documents(
+            filter_dict
+        )
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"transactions": customer_transaction_details, "total_documents": total_documents, "page_number": page_number, "per_page": per_page},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Customers Fiat Transactions Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={
+                constants.MESSAGE: f"Error in Get Customers Fiat Transactions Service: {e}"
+            },
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Customers Fiat Transactions Service")
     return response
