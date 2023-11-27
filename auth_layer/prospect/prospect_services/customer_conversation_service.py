@@ -90,6 +90,8 @@ def get_customer_conversations(page_number: int, per_page: int, type: str, token
                 )
             else:
                 conversation["property_details"] = {}
+            
+            conversation[constants.STATUS_FIELD] = str(conversation.get(constants.STATUS_FIELD)).upper()
 
             del conversation[constants.INDEX_ID]
             response_list.append(conversation)
