@@ -50,6 +50,7 @@ def get_customer_conversations(page_number: int, per_page: int, type: str, token
 
         customer_conversation = (
             customer_conversation_collection.find(filter)
+            .sort(constants.CREATED_AT_FIELD, -1)
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
