@@ -602,11 +602,12 @@ def post_profile_picture(profile_image, token):
                 }
             },
         )
-
+        profile_picture_url = core_cloudfront.cloudfront_sign(key)
         response = user_schema.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
             data={
                 constants.MESSAGE: constants.PROFILE_PICTURE_UPLOADED,
+                "profile_picture_url": profile_picture_url,
             },
             status_code=response_status,
         )

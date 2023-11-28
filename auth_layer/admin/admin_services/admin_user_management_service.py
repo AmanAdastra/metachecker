@@ -19,6 +19,8 @@ from common_layer import roles
 from bson import ObjectId
 from common_layer.common_schemas.user_schema import ResponseMessage
 from common_layer.common_services.utils import token_decoder
+from core_layer.aws_cloudfront import core_cloudfront
+
 
 def login_user(
     user_request: user_schema.AdminUserLogin,
@@ -90,6 +92,7 @@ def login_user(
     )
 
     user_details[constants.ID] = str(user_details[constants.INDEX_ID])
+    user_details["profile_picture_url_key"] = core_cloudfront.cloudfront_sign(user_details["profile_picture_url_key"])
     del user_details[constants.INDEX_ID]
     response = user_schema.ResponseMessage(
         type=constants.HTTP_RESPONSE_SUCCESS,
