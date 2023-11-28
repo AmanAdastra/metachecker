@@ -353,3 +353,50 @@ def get_customers_fiat_transactions(page_number,per_page,transaction_type, useri
         )
     logger.debug("Returning From the Get Customers Fiat Transactions Service")
     return response
+
+def update_admin_details(request:user_schema.UpdateAdminDetail, token):
+    logger.debug("Inside Update Admin Details Endpoint")
+    token_details = token_decoder(token)
+    user_id = token_details.get(constants.ID)
+    user_collection = db[constants.USER_DETAILS_SCHEMA]
+    user_details = user_collection.find_one({constants.INDEX_ID: ObjectId(user_id)})
+    request.password = Hash.get_password_hash(request.password)
+
+    # Check if mobile number is already registered
+    if request.mobile != user_details.get(constants.MOBILE_NUMBER_FIELD):
+        user_exists = user_collection.find_one(
+            {constants.MOBILE_NUMBER_FIELD: request.mobile}
+        )
+        if user_exists is not None:
+            response = user_schema.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "Mobile Number Already Registered"},
+                status_code=HTTPStatus.CONFLICT,
+            )
+            return response
+
+    if user_details is None:
+        response = user_schema.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: constants.USER_NOT_FOUND},
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+        return response
+    user_collection.find_one_and_update(
+        {constants.INDEX_ID: ObjectId(user_id)},
+        {
+            constants.UPDATE_INDEX_DATA: {
+                "legal_name": request.legal_name,
+                "email_id": request.email,
+                "password": request.password,
+                "mobile_number": request.mobile,
+                constants.UPDATED_AT_FIELD: time.time(),
+            }
+        },
+    )
+    response = user_schema.ResponseMessage(
+        type=constants.HTTP_RESPONSE_SUCCESS,
+        data={constants.MESSAGE: "User Details Updated Successfully"},
+        status_code=HTTPStatus.ACCEPTED,
+    )
+    return response

@@ -65,6 +65,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     logger.debug("Returning From the Get User Details Router")
     return response
 
+
 @router.get("/get-user-details-by-id")
 def get_user_details_by_id(user_id: str, token: Annotated[str, Depends(oauth2_scheme)]):
     logger.debug("Inside Get User Details By Id Router")
@@ -189,6 +190,7 @@ def reset_password(
     logger.debug("Returning from the Reset Password Router")
     return response
 
+
 @router.post("/upload-terms-or-policy-txt-file")
 def upload_terms_or_policy_txt_file(
     source_type: Annotated[str, Query(..., regex="^(terms|policy)$")],
@@ -203,6 +205,7 @@ def upload_terms_or_policy_txt_file(
     logger.debug("Returning from the Upload Terms Or Policy Txt File Router")
     return response
 
+
 @router.get("/get-terms-or-policy-html-text")
 def get_terms_or_policy_html_text(
     source_type: Annotated[str, Query(..., regex="^(terms|policy)$")],
@@ -212,6 +215,7 @@ def get_terms_or_policy_html_text(
     response = admin_user_management_service.get_terms_or_policy_html_text(source_type)
     logger.debug("Returning from the Get Terms Or Policy Html Text Router")
     return response
+
 
 @router.get("/get-users-transactions")
 def get_users_transactions(
@@ -223,9 +227,12 @@ def get_users_transactions(
 ):
     logger.debug("Inside the Get Users Transactions Router")
 
-    response = admin_user_management_service.get_customers_transactions(page_number,per_page,transaction_type, userid, token)
+    response = admin_user_management_service.get_customers_transactions(
+        page_number, per_page, transaction_type, userid, token
+    )
     logger.debug("Returning from the Get Users Transactions Router")
     return response
+
 
 @router.get("/get-users-fiat-transactions")
 def get_users_fiat_transactions(
@@ -237,6 +244,20 @@ def get_users_fiat_transactions(
 ):
     logger.debug("Inside the Get Users Fiat Transactions Router")
 
-    response = admin_user_management_service.get_customers_fiat_transactions(page_number,per_page,transaction_type, userid, token)
+    response = admin_user_management_service.get_customers_fiat_transactions(
+        page_number, per_page, transaction_type, userid, token
+    )
     logger.debug("Returning from the Get Users Fiat Transactions Router")
+    return response
+
+
+@router.put("/update-admin-user-details")
+def update_admin_user(
+    user_request: user_schema.UpdateAdminDetail,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside the Update Admin User Router")
+
+    response = admin_user_management_service.update_admin_details(user_request, token)
+    logger.debug("Returning from the Update Admin User Router")
     return response

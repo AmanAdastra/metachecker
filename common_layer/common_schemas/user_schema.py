@@ -109,3 +109,9 @@ class NotificationDetails(BaseModel):
     redirection: str
     created_at: float = time.time()
     updated_at: float = time.time()
+
+class UpdateAdminDetail(BaseModel):
+    legal_name: str
+    mobile: str
+    email: EmailStr
+    password: str
