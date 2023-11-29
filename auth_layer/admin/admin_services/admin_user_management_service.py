@@ -92,7 +92,9 @@ def login_user(
     )
 
     user_details[constants.ID] = str(user_details[constants.INDEX_ID])
-    user_details["profile_picture_url_key"] = core_cloudfront.cloudfront_sign(user_details["profile_picture_url_key"])
+    user_details["profile_picture_url_key"] = core_cloudfront.cloudfront_sign(
+        user_details["profile_picture_url_key"]
+    )
     del user_details[constants.INDEX_ID]
     response = user_schema.ResponseMessage(
         type=constants.HTTP_RESPONSE_SUCCESS,
@@ -156,7 +158,7 @@ def upload_terms_or_policy_txt_file(source_type, html_text, token):
             )
         response = user_schema.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={constants.MESSAGE:"Terms and Policy updated successfully"},
+            data={constants.MESSAGE: "Terms and Policy updated successfully"},
             status_code=HTTPStatus.OK,
         )
     except Exception as e:
@@ -167,6 +169,7 @@ def upload_terms_or_policy_txt_file(source_type, html_text, token):
             status_code=e.status_code if hasattr(e, "status_code") else 500,
         )
     return response
+
 
 def terms_and_policy_render(request, source_type):
     terms_and_policy_collection = db[constants.TERMS_AND_POLICY_SCHEMA]
@@ -181,7 +184,10 @@ def terms_and_policy_render(request, source_type):
         )
         return response
     html_text = terms_and_policy_record.get("html_text")
-    return templates.TemplateResponse("privacy_policy.html", {"request": request, "source_type": source_type,"html_text":html_text})
+    return templates.TemplateResponse(
+        "privacy_policy.html",
+        {"request": request, "source_type": source_type, "html_text": html_text},
+    )
 
 
 def get_terms_or_policy_html_text(source_type):
@@ -213,12 +219,14 @@ def get_terms_or_policy_html_text(source_type):
     return response
 
 
-def get_customers_transactions(page_number,per_page,transaction_type, userid, token):
+def get_customers_transactions(
+    page_number, per_page, transaction_type, userid, quantity, amount,avg_price, token
+):
     logger.debug("Inside Get Customers Transactions Service")
     try:
         logger.debug("Decoding Token")
         decoded_token = token_decoder(token)
-        admin_id = ObjectId(decoded_token.get(constants.ID)) 
+        admin_id = ObjectId(decoded_token.get(constants.ID))
         customer_transaction_details_collection = db[
             constants.CUSTOMER_TRANSACTION_SCHEMA
         ]
@@ -226,21 +234,35 @@ def get_customers_transactions(page_number,per_page,transaction_type, userid, to
         filter_dict = {"user_id": (userid)}
         if transaction_type != "ALL":
             filter_dict["transaction_type"] = transaction_type
+
+        if quantity != 0:
+            filter_dict["transaction_quantity"] = {"$gte": quantity}
+
+        if amount != 0:
+            filter_dict["transaction_amount"] = {"$gte": amount}
         
-        customer_transaction_details = customer_transaction_details_collection.find(
-            filter_dict,
-            {
-                "_id": 1,
-                "property_id": 1,
-                "transaction_type": 1,
-                "transaction_amount": 1,
-                "transaction_quantity": 1,
-                "transaction_avg_price": 1,
-                "transaction_id": 1,
-                "transaction_status": 1,
-                "transaction_date": 1,
-            },
-        ).sort("transaction_date", -1).skip((page_number - 1) * per_page).limit(per_page)
+        if avg_price != 0:
+            filter_dict["transaction_avg_price"] = {"$gte": avg_price}
+
+        customer_transaction_details = (
+            customer_transaction_details_collection.find(
+                filter_dict,
+                {
+                    "_id": 1,
+                    "property_id": 1,
+                    "transaction_type": 1,
+                    "transaction_amount": 1,
+                    "transaction_quantity": 1,
+                    "transaction_avg_price": 1,
+                    "transaction_id": 1,
+                    "transaction_status": 1,
+                    "transaction_date": 1,
+                },
+            )
+            .sort("transaction_date", -1)
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
         if customer_transaction_details is None:
             response = ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
@@ -277,7 +299,12 @@ def get_customers_transactions(page_number,per_page,transaction_type, userid, to
         )
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={"transactions": transactions, "total_documents": total_documents, "page_number": page_number, "per_page": per_page},
+            data={
+                "transactions": transactions,
+                "total_documents": total_documents,
+                "page_number": page_number,
+                "per_page": per_page,
+            },
             status_code=HTTPStatus.OK,
         )
     except Exception as e:
@@ -292,7 +319,10 @@ def get_customers_transactions(page_number,per_page,transaction_type, userid, to
     logger.debug("Returning From the Get Customers Transactions Service")
     return response
 
-def get_customers_fiat_transactions(page_number,per_page,transaction_type, userid, token):
+
+def get_customers_fiat_transactions(
+    page_number, per_page, transaction_type, userid, token
+):
     logger.debug("Inside Get Customers Fiat Transactions Service")
     try:
         print(userid)
@@ -305,20 +335,25 @@ def get_customers_fiat_transactions(page_number,per_page,transaction_type, useri
 
         filter_dict = {"user_id": (userid)}
 
-        if transaction_type!= "ALL":
+        if transaction_type != "ALL":
             filter_dict["transaction_type"] = transaction_type
-        
-        customer_transaction_details = customer_transaction_details_collection.find(
-            filter_dict,
-            {
-                "_id": 1,
-                "transaction_type": 1,
-                "transaction_amount": 1,
-                "transaction_id": 1,
-                "transaction_status": 1,
-                "transaction_date": 1,
-            },
-        ).sort("transaction_date", -1).skip((page_number - 1) * per_page).limit(per_page)
+
+        customer_transaction_details = (
+            customer_transaction_details_collection.find(
+                filter_dict,
+                {
+                    "_id": 1,
+                    "transaction_type": 1,
+                    "transaction_amount": 1,
+                    "transaction_id": 1,
+                    "transaction_status": 1,
+                    "transaction_date": 1,
+                },
+            )
+            .sort("transaction_date", -1)
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
         if customer_transaction_details is None:
             response = ResponseMessage(
                 type=constants.HTTP_RESPONSE_FAILURE,
@@ -339,7 +374,12 @@ def get_customers_fiat_transactions(page_number,per_page,transaction_type, useri
         )
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={"transactions": customer_transaction_details, "total_documents": total_documents, "page_number": page_number, "per_page": per_page},
+            data={
+                "transactions": customer_transaction_details,
+                "total_documents": total_documents,
+                "page_number": page_number,
+                "per_page": per_page,
+            },
             status_code=HTTPStatus.OK,
         )
     except Exception as e:
@@ -354,7 +394,8 @@ def get_customers_fiat_transactions(page_number,per_page,transaction_type, useri
     logger.debug("Returning From the Get Customers Fiat Transactions Service")
     return response
 
-def update_admin_details(request:user_schema.UpdateAdminDetail, token):
+
+def update_admin_details(request: user_schema.UpdateAdminDetail, token):
     logger.debug("Inside Update Admin Details Endpoint")
     token_details = token_decoder(token)
     user_id = token_details.get(constants.ID)

@@ -222,13 +222,16 @@ def get_users_transactions(
     page_number: int,
     per_page: int,
     transaction_type: Annotated[str, Query(..., regex="^(ALL|BUY|SELL)$")],
+    amount: float,
+    quantity: float,
+    avg_price: float,
     userid: str,
     token: Annotated[str, Depends(oauth2_scheme)],
 ):
     logger.debug("Inside the Get Users Transactions Router")
 
     response = admin_user_management_service.get_customers_transactions(
-        page_number, per_page, transaction_type, userid, token
+        page_number, per_page, transaction_type, userid, quantity, amount,avg_price, token
     )
     logger.debug("Returning from the Get Users Transactions Router")
     return response
