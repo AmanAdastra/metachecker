@@ -220,7 +220,7 @@ def get_terms_or_policy_html_text(source_type):
 
 
 def get_customers_transactions(
-    page_number, per_page, transaction_type, userid, quantity, amount,avg_price, token
+    page_number, per_page, transaction_type, userid, quantity, amount, avg_price, date, token
 ):
     logger.debug("Inside Get Customers Transactions Service")
     try:
@@ -243,6 +243,9 @@ def get_customers_transactions(
         
         if avg_price != 0:
             filter_dict["transaction_avg_price"] = {"$gte": avg_price}
+        
+        if date != 0:
+            filter_dict["transaction_date"] = {"$lte": date}
 
         customer_transaction_details = (
             customer_transaction_details_collection.find(

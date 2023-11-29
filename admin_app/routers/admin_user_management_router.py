@@ -225,13 +225,14 @@ def get_users_transactions(
     amount: float,
     quantity: float,
     avg_price: float,
+    date:float,
     userid: str,
     token: Annotated[str, Depends(oauth2_scheme)],
 ):
     logger.debug("Inside the Get Users Transactions Router")
 
     response = admin_user_management_service.get_customers_transactions(
-        page_number, per_page, transaction_type, userid, quantity, amount,avg_price, token
+        page_number, per_page, transaction_type, userid, quantity, amount, avg_price, date, token
     )
     logger.debug("Returning from the Get Users Transactions Router")
     return response
