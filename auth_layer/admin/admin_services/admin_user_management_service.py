@@ -476,7 +476,7 @@ def get_users_list(page_number, per_page, user_type, token):
                     "profile_picture_uploaded": 1,
                 },
             )
-            .sort("created_at", -1)
+            .sort("_id", -1)
             .skip((page_number - 1) * per_page)
             .limit(per_page)
         )
