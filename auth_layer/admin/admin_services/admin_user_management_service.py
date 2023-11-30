@@ -494,7 +494,7 @@ def get_users_list(page_number, per_page, user_type, token):
             user[constants.ID] = str(user[constants.INDEX_ID])
             del user[constants.INDEX_ID]
         total_documents = user_collection.count_documents(
-            {constants.USER_TYPE_FIELD: user_schema.UserTypes.STAFF.value}
+            {constants.USER_TYPE_FIELD: {"$in": user_types}}
         )
         response = ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
