@@ -328,7 +328,7 @@ def get_customers_transactions(
 
 
 def get_customers_fiat_transactions(
-    page_number, per_page, transaction_type, userid, token
+    page_number, per_page, transaction_type, userid, min_date, max_date, token
 ):
     logger.debug("Inside Get Customers Fiat Transactions Service")
     try:
@@ -344,6 +344,17 @@ def get_customers_fiat_transactions(
 
         if transaction_type != "ALL":
             filter_dict["transaction_type"] = transaction_type
+
+        if min_date != 0 and max_date != 0:
+            filter_dict["transaction_date"] = {
+                "$gte": min_date,
+                "$lte": max_date,
+            }
+        elif min_date != 0:
+            filter_dict["transaction_date"] = {"$gte": min_date}
+        elif max_date != 0:
+            filter_dict["transaction_date"] = {"$lte": max_date}
+            
 
         customer_transaction_details = (
             customer_transaction_details_collection.find(

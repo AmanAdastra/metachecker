@@ -241,13 +241,15 @@ def get_users_fiat_transactions(
     page_number: int,
     per_page: int,
     transaction_type: Annotated[str, Query(..., regex="^(ALL|DEPOSIT|WITHDRAW)$")],
+    min_date:float,
+    max_date:float,
     userid: str,
     token: Annotated[str, Depends(oauth2_scheme)],
 ):
     logger.debug("Inside the Get Users Fiat Transactions Router")
 
     response = admin_user_management_service.get_customers_fiat_transactions(
-        page_number, per_page, transaction_type, userid, token
+        page_number, per_page, transaction_type, userid, min_date, max_date, token
     )
     logger.debug("Returning from the Get Users Fiat Transactions Router")
     return response
