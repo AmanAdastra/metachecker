@@ -399,6 +399,7 @@ def register_user(
     response = user_schema.ResponseMessage(
         type=constants.HTTP_RESPONSE_SUCCESS,
         data={
+            constants.MESSAGE: "User Registered Successfully",
             constants.USER_DETAILS: validated_index,
             constants.INDEX_ID: str(inserted_index.inserted_id),
             constants.ACCESS_TOKEN: access_token,
