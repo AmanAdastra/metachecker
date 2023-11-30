@@ -224,10 +224,8 @@ def get_customers_transactions(
     per_page,
     transaction_type,
     userid,
-    quantity,
-    amount,
-    avg_price,
-    date,
+    min_date,
+    max_date,
     token,
 ):
     logger.debug("Inside Get Customers Transactions Service")
@@ -243,17 +241,15 @@ def get_customers_transactions(
         if transaction_type != "ALL":
             filter_dict["transaction_type"] = transaction_type
 
-        if quantity != 0:
-            filter_dict["transaction_quantity"] = {"$gte": quantity}
-
-        if amount != 0:
-            filter_dict["transaction_amount"] = {"$gte": amount}
-
-        if avg_price != 0:
-            filter_dict["transaction_avg_price"] = {"$gte": avg_price}
-
-        if date != 0:
-            filter_dict["transaction_date"] = {"$lte": date}
+        if min_date != 0 and max_date != 0:
+            filter_dict["transaction_date"] = {
+                "$gte": min_date,
+                "$lte": max_date,
+            }
+        elif min_date != 0:
+            filter_dict["transaction_date"] = {"$gte": min_date}
+        elif max_date != 0:
+            filter_dict["transaction_date"] = {"$lte": max_date}
 
         customer_transaction_details = (
             customer_transaction_details_collection.find(
@@ -459,11 +455,16 @@ def get_users_list(page_number, per_page, user_type, token):
     try:
         logger.debug("Decoding Token")
         decoded_token = token_decoder(token)
-        admin_id = (decoded_token.get(constants.ID))
+        admin_id = decoded_token.get(constants.ID)
         user_collection = db[constants.USER_DETAILS_SCHEMA]
+        user_types = []
+        if user_type == user_schema.UserTypes.CUSTOMER.value:
+            user_types = [user_schema.UserTypes.CUSTOMER.value, user_schema.UserTypes.PARTNER.value]
+        else:
+            user_types = [ user_schema.UserTypes.STAFF.value]
         user_details = (
             user_collection.find(
-                {constants.USER_TYPE_FIELD: user_type},
+                {constants.USER_TYPE_FIELD : {"$in": user_types}},
                 {
                     constants.INDEX_ID: 1,
                     "legal_name": 1,
