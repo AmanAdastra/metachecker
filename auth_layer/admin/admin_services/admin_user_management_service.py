@@ -111,20 +111,20 @@ def login_user(
     return response
 
 
-def get_users_list():
-    logger.debug("Get Users List process started")
-    user_collection = db[constants.USER_DETAILS_SCHEMA]
-    user_list = list(user_collection.find().sort(constants.CREATED_AT_FIELD, -1))
-    for user in user_list:
-        user[constants.INDEX_ID] = str(user[constants.INDEX_ID])
-    response = user_schema.ResponseMessage(
-        type=constants.HTTP_RESPONSE_SUCCESS,
-        data={
-            constants.USER_DETAILS: user_list,
-        },
-        status_code=HTTPStatus.ACCEPTED,
-    )
-    return response
+# def get_users_list():
+#     logger.debug("Get Users List process started")
+#     user_collection = db[constants.USER_DETAILS_SCHEMA]
+#     user_list = list(user_collection.find().sort(constants.CREATED_AT_FIELD, -1))
+#     for user in user_list:
+#         user[constants.INDEX_ID] = str(user[constants.INDEX_ID])
+#     response = user_schema.ResponseMessage(
+#         type=constants.HTTP_RESPONSE_SUCCESS,
+#         data={
+#             constants.USER_DETAILS: user_list,
+#         },
+#         status_code=HTTPStatus.ACCEPTED,
+#     )
+#     return response
 
 
 # Upload Terms and Conditions Pdf into s3 bucket
@@ -220,7 +220,15 @@ def get_terms_or_policy_html_text(source_type):
 
 
 def get_customers_transactions(
-    page_number, per_page, transaction_type, userid, quantity, amount, avg_price, date, token
+    page_number,
+    per_page,
+    transaction_type,
+    userid,
+    quantity,
+    amount,
+    avg_price,
+    date,
+    token,
 ):
     logger.debug("Inside Get Customers Transactions Service")
     try:
@@ -240,10 +248,10 @@ def get_customers_transactions(
 
         if amount != 0:
             filter_dict["transaction_amount"] = {"$gte": amount}
-        
+
         if avg_price != 0:
             filter_dict["transaction_avg_price"] = {"$gte": avg_price}
-        
+
         if date != 0:
             filter_dict["transaction_date"] = {"$lte": date}
 
@@ -443,4 +451,66 @@ def update_admin_details(request: user_schema.UpdateAdminDetail, token):
         data={constants.MESSAGE: "User Details Updated Successfully"},
         status_code=HTTPStatus.ACCEPTED,
     )
+    return response
+
+
+def get_users_list(page_number, per_page, user_type, token):
+    logger.debug("Inside Get Staff List Service")
+    try:
+        logger.debug("Decoding Token")
+        decoded_token = token_decoder(token)
+        admin_id = (decoded_token.get(constants.ID))
+        user_collection = db[constants.USER_DETAILS_SCHEMA]
+        user_details = (
+            user_collection.find(
+                {constants.USER_TYPE_FIELD: user_type},
+                {
+                    constants.INDEX_ID: 1,
+                    "legal_name": 1,
+                    "email_id": 1,
+                    "mobile_number": 1,
+                    "is_active": 1,
+                    "last_login_at": 1,
+                    "profile_picture_url_key": 1,
+                    "profile_picture_uploaded": 1,
+                },
+            )
+            .sort("created_at", -1)
+            .skip((page_number - 1) * per_page)
+            .limit(per_page)
+        )
+        if user_details is None:
+            response = ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={constants.MESSAGE: "User Details Not Found"},
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return response
+        user_details = list(user_details)
+        for user in user_details:
+            profile_picture_url_key = user.get("profile_picture_url_key")
+            user["avatar"] = core_cloudfront.cloudfront_sign(profile_picture_url_key)
+            user[constants.ID] = str(user[constants.INDEX_ID])
+            del user[constants.INDEX_ID]
+        total_documents = user_collection.count_documents(
+            {constants.USER_TYPE_FIELD: user_schema.UserTypes.STAFF.value}
+        )
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={
+                "users": user_details,
+                "total_documents": total_documents,
+                "page_number": page_number,
+                "per_page": per_page,
+            },
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Get Staff List Service: {e}")
+        response = ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Get Staff List Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Get Staff List Service")
     return response

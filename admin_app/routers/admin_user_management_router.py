@@ -168,15 +168,15 @@ def convert_investor_to_customer(
     return response
 
 
-@router.get("/get-users-list")
-def get_users_list(
-    token: Annotated[str, Depends(oauth2_scheme)],
-):
-    logger.debug("Inside the Get Users List Router")
+# @router.get("/get-users-list")
+# def get_users_list(
+#     token: Annotated[str, Depends(oauth2_scheme)],
+# ):
+#     logger.debug("Inside the Get Users List Router")
 
-    response = admin_user_management_service.get_users_list()
-    logger.debug("Returning from the Get Users List Router")
-    return response
+#     response = admin_user_management_service.get_users_list()
+#     logger.debug("Returning from the Get Users List Router")
+#     return response
 
 
 @router.put("/reset-password")
@@ -264,4 +264,16 @@ def update_admin_user(
 
     response = admin_user_management_service.update_admin_details(user_request, token)
     logger.debug("Returning from the Update Admin User Router")
+    return response
+
+@router.get("/get-users-list")
+def get_users_list(
+    page_number: int,
+    per_page: int,
+    user_type: Annotated[str, Query(..., regex="^(customer|partner|staff)$")],
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside the Get Staff List Router")
+    response = admin_user_management_service.get_users_list(page_number, per_page,user_type, token)
+    logger.debug("Returning from the Get Staff List Router")
     return response
