@@ -354,7 +354,6 @@ def get_customers_fiat_transactions(
             filter_dict["transaction_date"] = {"$gte": min_date}
         elif max_date != 0:
             filter_dict["transaction_date"] = {"$lte": max_date}
-            
 
         customer_transaction_details = (
             customer_transaction_details_collection.find(
@@ -461,7 +460,9 @@ def update_admin_details(request: user_schema.UpdateAdminDetail, token):
     return response
 
 
-def get_users_list(page_number, per_page, user_type, token):
+def get_users_list(
+    page_number, per_page, legal_name, email, mobile_number, user_type, token
+):
     logger.debug("Inside Get Staff List Service")
     try:
         logger.debug("Decoding Token")
@@ -470,12 +471,27 @@ def get_users_list(page_number, per_page, user_type, token):
         user_collection = db[constants.USER_DETAILS_SCHEMA]
         user_types = []
         if user_type == user_schema.UserTypes.CUSTOMER.value:
-            user_types = [user_schema.UserTypes.CUSTOMER.value, user_schema.UserTypes.PARTNER.value]
+            user_types = [
+                user_schema.UserTypes.CUSTOMER.value,
+                user_schema.UserTypes.PARTNER.value,
+            ]
         else:
-            user_types = [ user_schema.UserTypes.STAFF.value]
+            user_types = [user_schema.UserTypes.STAFF.value]
+
+        filter_dict = {constants.USER_TYPE_FIELD: {"$in": user_types}}
+
+        if legal_name != "":
+            filter_dict["legal_name"] = {"$regex": legal_name, "$options": "i"}
+
+        if email != "":
+            filter_dict["email_id"] = {"$regex": email, "$options": "i"}
+
+        if mobile_number != "":
+            filter_dict["mobile_number"] = {"$regex": mobile_number, "$options": "i"}
+
         user_details = (
             user_collection.find(
-                {constants.USER_TYPE_FIELD : {"$in": user_types}},
+                filter_dict,
                 {
                     constants.INDEX_ID: 1,
                     "legal_name": 1,

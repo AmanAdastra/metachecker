@@ -270,10 +270,13 @@ def update_admin_user(
 def get_users_list(
     page_number: int,
     per_page: int,
+    legal_name: str,
+    email:str,
+    mobile_number:str,
     user_type: Annotated[str, Query(..., regex="^(customer|partner|staff)$")],
     token: Annotated[str, Depends(oauth2_scheme)],
 ):
     logger.debug("Inside the Get Staff List Router")
-    response = admin_user_management_service.get_users_list(page_number, per_page,user_type, token)
+    response = admin_user_management_service.get_users_list(page_number, per_page, legal_name, email, mobile_number, user_type, token)
     logger.debug("Returning from the Get Staff List Router")
     return response
