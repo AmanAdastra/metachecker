@@ -572,7 +572,7 @@ def forgot_secure_pin(mobile_number: str, secure_pin: str):
         )
         return response
 
-    user_details.find_one_and_update(
+    user_collection.find_one_and_update(
         {constants.MOBILE_NUMBER_FIELD: mobile_number},
         {
             constants.UPDATE_INDEX_DATA: {
