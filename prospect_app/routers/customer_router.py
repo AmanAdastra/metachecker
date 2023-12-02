@@ -132,6 +132,13 @@ def update_secure_pin(secure_pin: str, token: Annotated[str, Depends(oauth2_sche
     logger.debug("Returning from Update Secure Pin Router")
     return response
 
+@router.put("/forgot-secure-pin")
+def forgot_secure_pin(mobile_number: str, secure_pin: str):
+    logger.debug("Inside the Forgot Secure Pin Router")
+    response = user_management_service.forgot_secure_pin(mobile_number, secure_pin)
+    logger.debug("Returning from Forgot Secure Pin Router")
+    return response
+
 
 @router.post("/post-profile-picture", dependencies=[Depends(valid_content_length)])
 def post_profile_picture(

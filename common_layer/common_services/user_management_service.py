@@ -558,7 +558,35 @@ def update_secure_pin(secure_pin: str, token: str):
         )
 
         return response
+def forgot_secure_pin(mobile_number: str, secure_pin: str):
+    user_collection = db[constants.USER_DETAILS_SCHEMA]
+    user_details = user_collection.find_one(
+        {constants.MOBILE_NUMBER_FIELD: mobile_number}
+    )
 
+    if user_details is None:
+        response = user_schema.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: constants.USER_NOT_FOUND},
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+        return response
+
+    user_details.find_one_and_update(
+        {constants.MOBILE_NUMBER_FIELD: mobile_number},
+        {
+            constants.UPDATE_INDEX_DATA: {
+                constants.SECURE_PIN_FIELD: secure_pin,
+                constants.UPDATED_AT_FIELD: time.time(),
+            }
+        },
+    )
+    response = user_schema.ResponseMessage(
+        type=constants.HTTP_RESPONSE_SUCCESS,
+        data={constants.MESSAGE: constants.SECURE_PIN_UPDATED},
+        status_code=HTTPStatus.ACCEPTED,
+    )
+    return response
 
 def post_profile_picture(profile_image, token):
     logger.debug("Inside the Post Profile Picture Service")
