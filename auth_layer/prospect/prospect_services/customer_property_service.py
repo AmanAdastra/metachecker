@@ -1886,6 +1886,7 @@ def get_property_list(
                     constants.LISTED_BY_FIELD: 1,
                     constants.CREATED_AT_FIELD: 1,
                     constants.LOCATION_FIELD: 1,
+                    constants.STATUS_FIELD: 1,
                 },
             )
             .sort(
@@ -1914,6 +1915,7 @@ def get_property_list(
                     constants.LISTED_BY_FIELD: property[constants.LISTED_BY_FIELD],
                     constants.CREATED_AT_FIELD: property[constants.CREATED_AT_FIELD],
                     constants.LOCATION_FIELD: property[constants.LOCATION_FIELD],
+                    constants.STATUS_FIELD: property[constants.STATUS_FIELD],
                 }
             )
 
