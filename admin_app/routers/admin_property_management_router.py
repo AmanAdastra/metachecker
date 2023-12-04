@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Form, UploadFile, File
 from logging_module import logger
 from pydantic import EmailStr
-from typing import Annotated
+from typing import Annotated, Optional
 from auth_layer.admin.admin_schemas import admin_property_management_schemas
 from auth_layer.admin.admin_services import admin_property_management_service
 from auth_layer.prospect.prospect_services import customer_property_service
@@ -23,7 +23,7 @@ router = APIRouter(
 
 
 @router.get("/regions")
-def get_regions(page_number:int, per_page:int,region:str, status:str, token: Annotated[str, Depends(oauth2_scheme)]):
+def get_regions(page_number:int, per_page:int, token: Annotated[str, Depends(oauth2_scheme)], region:Optional[str] = "", status:Optional[str] = ""):
     logger.debug("Inside Add Regions Router")
     response = admin_property_management_service.get_regions(page_number,per_page, region, status, token)
     logger.debug("Returning From the Add Regions Router")
@@ -49,6 +49,16 @@ def update_region(
     logger.debug("Inside Update Region Router")
     response = admin_property_management_service.update_region(request, token)
     logger.debug("Returning From the Update Region Router")
+    return response
+
+@router.put("/update-region-status")
+def update_region_status(
+    region_id: str,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside Update Region Status Router")
+    response = admin_property_management_service.deactivate_region(region_id, token)
+    logger.debug("Returning From the Update Region Status Router")
     return response
 
 

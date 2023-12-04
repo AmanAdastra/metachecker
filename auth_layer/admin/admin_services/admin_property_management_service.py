@@ -113,6 +113,48 @@ def add_region(
     logger.debug("Returning From the Add Region Service")
     return response
 
+def deactivate_region(
+    region_id: str,
+    token: Annotated[str, Depends(oauth2_scheme)],
+):
+    logger.debug("Inside Deactivate Region Service")
+    try:
+        decoded_token = token_decoder(token)
+        user_id = ObjectId(decoded_token.get(constants.ID))
+        logger.debug(f"Region deactivated by User Id: {user_id}")
+        region_collection = db[constants.REGION_DETAILS_SCHEMA]
+
+        region_data = region_collection.find_one({constants.INDEX_ID: ObjectId(region_id)})
+        if not region_data:
+            logger.error(f"Region with Id: {region_id} does not exist")
+            response = admin_property_management_schemas.ResponseMessage(
+                type=constants.HTTP_RESPONSE_FAILURE,
+                data={
+                    constants.MESSAGE: f"Region with Id: {region_id} does not exist"
+                },
+                status_code=HTTPStatus.BAD_REQUEST,
+            )
+            return response
+
+        region_collection.find_one_and_update(
+            {constants.INDEX_ID: ObjectId(region_id)},
+            {constants.UPDATE_INDEX_DATA: {constants.IS_ACTIVE_FIELD: not region_data.get(constants.IS_ACTIVE_FIELD)}},
+        )
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_SUCCESS,
+            data={"message": "Region Status Changed Successfully"},
+            status_code=HTTPStatus.OK,
+        )
+    except Exception as e:
+        logger.error(f"Error in Deactivate Region Service: {e}")
+        response = admin_property_management_schemas.ResponseMessage(
+            type=constants.HTTP_RESPONSE_FAILURE,
+            data={constants.MESSAGE: f"Error in Deactivate Region Service: {e}"},
+            status_code=e.status_code if hasattr(e, "status_code") else 500,
+        )
+    logger.debug("Returning From the Deactivate Region Service")
+    return response
+
 
 def get_region_by_id(region_id: str, token: Annotated[str, Depends(oauth2_scheme)]):
     logger.debug("Inside Get Region By Id Service")
