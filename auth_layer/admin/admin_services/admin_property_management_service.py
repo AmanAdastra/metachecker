@@ -16,14 +16,23 @@ from core_layer.aws_s3 import s3
 from core_layer.aws_cloudfront import core_cloudfront
 
 
-def get_regions(token: Annotated[str, Depends(oauth2_scheme)]):
+def get_regions(page_number, per_page, region, status,token: Annotated[str, Depends(oauth2_scheme)]):
     logger.debug("Inside Get Regions Service")
     try:
         decoded_token = token_decoder(token)
         user_id = ObjectId(decoded_token.get(constants.ID))
         logger.debug(f"Regions fetched by User Id: {user_id}")
         region_collection = db[constants.REGION_DETAILS_SCHEMA]
-        regions = list(region_collection.find({}).sort(constants.CREATED_AT_FIELD, -1))
+
+        filter_dict = {}
+        if region:
+            filter_dict[constants.TITLE_FIELD] = {"$regex": region, "$options": "i"}
+
+        if status:
+            filter_dict[constants.IS_ACTIVE_FIELD] = True if str(status).lower().startswith("a") else False
+
+
+        regions = list(region_collection.find(filter_dict).sort(constants.INDEX_ID, -1).skip((page_number-1)*per_page).limit(per_page))
         response_regions = []
         for region in regions:
             region[constants.ID] = str(region[constants.INDEX_ID])
@@ -32,9 +41,10 @@ def get_regions(token: Annotated[str, Depends(oauth2_scheme)]):
             )
             del region[constants.INDEX_ID]
             response_regions.append(region)
+        document_count = region_collection.count_documents(filter_dict)
         response = admin_property_management_schemas.ResponseMessage(
             type=constants.HTTP_RESPONSE_SUCCESS,
-            data={"regions": response_regions},
+            data={"regions": response_regions , "document_count": document_count, "page_number": page_number, "per_page": per_page},
             status_code=HTTPStatus.OK,
         )
     except Exception as e:

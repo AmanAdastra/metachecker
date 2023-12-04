@@ -23,9 +23,9 @@ router = APIRouter(
 
 
 @router.get("/regions")
-def get_regions(token: Annotated[str, Depends(oauth2_scheme)]):
+def get_regions(page_number:int, per_page:int,region:str, status:str, token: Annotated[str, Depends(oauth2_scheme)]):
     logger.debug("Inside Add Regions Router")
-    response = admin_property_management_service.get_regions(token)
+    response = admin_property_management_service.get_regions(page_number,per_page, region, status, token)
     logger.debug("Returning From the Add Regions Router")
     return response
 
